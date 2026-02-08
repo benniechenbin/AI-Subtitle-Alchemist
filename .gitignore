@@ -1,0 +1,19 @@
+# === 核心隐私 ===
+config.json
+*.db
+subtitle_library.db
+secrets.toml
+
+# === Python 缓存与环境 ===
+__pycache__/
+*.pyc
+.env
+.venv
+env/
+venv/
+.DS_Store
+
+# === 临时文件 ===
+*.srt
+*.zip
+processed_files/

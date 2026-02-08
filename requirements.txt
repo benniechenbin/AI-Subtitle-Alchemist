@@ -1,0 +1,8 @@
+streamlit>=1.30.0
+pandas
+numpy
+sentence-transformers
+openai
+chardet
+guessit
+scikit-learn
