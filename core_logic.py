@@ -9,6 +9,45 @@ import json
 import numpy as np
 from sentence_transformers import SentenceTransformer, util
 from openai import OpenAI
+import difflib
+import sqlite3
+import difflib
+
+# --- 新增辅助函数：上下文扩展 ---
+def get_context_by_id(db_path, center_id, movie_name, window=1):
+    """
+    根据 ID 向前后扩展台词，同时确保不跨越电影边界。
+    """
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        # 这里的逻辑是：
+        # 1. ID 在 [center - window, center + window] 之间
+        # 2. 必须是同一部电影 (movie_name)
+        # 3. 按 ID 排序确保顺序正确
+        query = """
+            SELECT content 
+            FROM subtitles 
+            WHERE id BETWEEN ? AND ? 
+            AND movie_name = ? 
+            ORDER BY id ASC
+        """
+        start_id = center_id - window
+        end_id = center_id + window
+        
+        cursor.execute(query, (start_id, end_id, movie_name))
+        results = cursor.fetchall()
+        
+        # 把结果拼起来
+        combined_text = " ".join([row[0] for row in results])
+        return combined_text
+        
+    except Exception as e:
+        print(f"扩展上下文出错: {e}")
+        return "" # 出错就返回空，不影响主流程
+    finally:
+        if conn: conn.close()
 
 DB_NAME = "subtitle_library.db"
 
@@ -405,62 +444,77 @@ def get_context_lines(movie_name, season, episode, line_index, window=2):
     conn.close()
     return [{"time": r[0], "text": r[1], "is_target": (r[2] == line_index)} for r in rows]
 
-def search_db_semantic(query, model, top_k=20):
-    """基于 Embedding 的语义检索。"""
-    if not model:
-        return [{"movie": "系统错误", "time": "", "content": "模型对象为空"}]
-    query_embedding = model.encode(query, convert_to_numpy=True)
-    conn = get_db_connection()
-    c = conn.cursor()
-    c.execute("SELECT movie_name, season, episode, start_time, content, embedding FROM subtitles WHERE embedding IS NOT NULL")
-    rows = c.fetchall()
-    conn.close()
-    if not rows:
-        return []
-    db_embeddings = []
-    valid_rows = []
-    for r in rows:
-        vec = np.frombuffer(r[5], dtype=np.float32)
-        db_embeddings.append(vec)
-        valid_rows.append(r)
-
-    if not db_embeddings:
-        return []
+def search_db_semantic(query, model, top_k=20, db_path=DB_NAME, target_movie=None):
+    """
+    基础语义搜索：支持按电影名过滤
+    """
+    # 将搜索词向量化
+    query_vector = model.encode(query)
+    
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    
     try:
-        corpus_embeddings = np.stack(db_embeddings)
-        cos_scores = util.cos_sim(query_embedding, corpus_embeddings)[0]
-    except RuntimeError as e:
-        error_msg = str(e)
-        if "shapes cannot be multiplied" in error_msg or "mat1 and mat2" in error_msg:
-            return [{
-                "movie": "❌ 维度错误", 
-                "time": "00:00:00", 
-                "content": f"模型维度不匹配！当前库是旧模型的索引。请去[数据库管理]点击[重新扫描硬盘]以重建索引。"
-            }]
-        raise e
-    top_results = []
-    top_scores, top_indices = cos_scores.topk(min(top_k, len(cos_scores)))
-    for score, idx in zip(top_scores, top_indices):
-        r = valid_rows[idx]
-        top_results.append({
-            "movie": r[0],
-            "season": r[1],
-            "episode": r[2],
-            "time": r[3],
-            "content": r[4],
-            "score": float(score)
-        })
-    return top_results
+        # ✅ 正确的 SQL 逻辑（使用标准半角空格）
+        if target_movie:
+            query_sql = "SELECT id, movie_name, season, episode, start_time, content, embedding FROM subtitles WHERE movie_name = ?"
+            cursor.execute(query_sql, (target_movie,))
+        else:
+            query_sql = "SELECT id, movie_name, season, episode, start_time, content, embedding FROM subtitles"
+            cursor.execute(query_sql)
+            
+        rows = cursor.fetchall()
+        
+        import numpy as np
+        q_vec = np.array(query_vector)
+        candidates = []
+        
+        for row in rows:
+            # ✅ 正确的二进制读取逻辑
+            embedding_blob = row[6]
+            if not embedding_blob:
+                continue
+            
+            db_vec = np.frombuffer(embedding_blob, dtype=np.float32)
+            
+            # 防御性检查：维度必须匹配才能计算
+            if db_vec.shape != q_vec.shape:
+                continue
+                
+            # 计算余弦相似度
+            score = np.dot(q_vec, db_vec) / (np.linalg.norm(q_vec) * np.linalg.norm(db_vec))
+            
+            candidates.append({
+                'id': row[0],
+                'movie': row[1],
+                'season': row[2],
+                'episode': row[3],
+                'time': row[4],
+                'content': row[5],
+                'score': score
+            })
+            
+        # 排序并取 Top K
+        candidates.sort(key=lambda x: x['score'], reverse=True)
+        return candidates[:top_k]
+
+    finally:
+        conn.close()
 
 # --- LLM 调用 ---
-def call_deepseek_llm(system_prompt, user_prompt, api_key):
-    """DeepSeek/OpenAI 兼容调用。"""
-    if not api_key:
-        raise ValueError("未提供 API Key")
+def call_llm_api(system_prompt, user_prompt, api_key, model_name, base_url):
+    """
+    通用大模型调用接口，适配所有 OpenAI 格式的 API。
+    """
+    if not api_key and "ollama" not in base_url.lower():
+        raise ValueError("未配置 API Key，请在侧边栏设置")
+    
     try:
-        client = OpenAI(api_key=api_key, base_url="https://api.deepseek.com")
+        # 这里的 client 会自动适配你填写的厂商 URL
+        client = OpenAI(api_key=api_key, base_url=base_url)
+        
         response = client.chat.completions.create(
-            model="deepseek-chat",
+            model=model_name, # 使用 UI 选中的模型
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
@@ -471,8 +525,79 @@ def call_deepseek_llm(system_prompt, user_prompt, api_key):
         )
         return response.choices[0].message.content
     except Exception as e:
-        return f"❌ API 调用失败：{str(e)}"
+        return f"❌ AI 调用失败：{str(e)}"
 
+# ==================================================
+# 新增功能：优化版语义搜索 (带去重和漏斗过滤)
+# ==================================================
+
+
+def search_db_semantic_optimized(query, model, db_path, final_k=20, fetch_ratio=4, allow_duplicates=False, target_movie=None):
+    """
+    已集成上下文扩展功能
+    注意：增加了一个 db_path 参数，因为扩展函数需要连数据库
+    """
+    # 1. 宽进
+    fetch_k = final_k * fetch_ratio
+    # 这里的调用要确保传对参数
+    raw_results = search_db_semantic(query, model, top_k=fetch_k, db_path=db_path, target_movie=target_movie)
+    
+    if not raw_results:
+        return []
+
+    unique_results = []
+    seen_contents = []
+
+    for res in raw_results:
+        # --- 核心修改：上下文扩展 (Magic Happens Here) ---
+        # 如果不是混剪模式（即写剧本模式），我们进行扩展
+        if not allow_duplicates:
+            # 向前后各扩充 1 句 (window=1)
+            expanded_text = get_context_by_id(db_path, res['id'], res['movie'], window=1)
+            
+            # 如果扩展成功，就用扩展后的文本替换原来的单句
+            if expanded_text:
+                res['content'] = expanded_text 
+                # 小技巧：可以在显示时加个标记，告诉用户这是扩展过的
+                # res['content'] = f"{expanded_text} (AI联想)"
+
+        # --- 下面是原来的去重逻辑 ---
+        new_text = res['content']
+
+        if allow_duplicates:
+            is_same_source = False
+            for exist in unique_results:
+                if exist['movie'] == res['movie'] and exist['time'] == res['time']:
+                    is_same_source = True
+                    break
+            if not is_same_source:
+                unique_results.append(res)
+            if len(unique_results) >= final_k: break
+            continue 
+
+        # 严格去重逻辑
+        if len(new_text) < 2: continue
+        if new_text in seen_contents: continue
+        
+        is_duplicate = False
+        for seen in seen_contents:
+            similarity = difflib.SequenceMatcher(None, new_text, seen).ratio()
+            # 因为扩展后文本变长了，相似度阈值可以稍微调低一点，或者保持不变
+            if similarity > 0.85: 
+                is_duplicate = True
+                break
+        
+        if is_duplicate: continue
+
+        unique_results.append(res)
+        seen_contents.append(new_text)
+        
+        if len(unique_results) >= final_k:
+            break
+            
+    return unique_results
+
+    
 def generate_script(movie_name, api_key):
     """调用 LLM 生成混剪脚本。"""
     sys_prompt = "你是一位电影预告片剪辑大师..."
@@ -484,3 +609,4 @@ def extract_golden_quotes(subtitle_text, api_key):
     sys_prompt = "你是一个文学鉴赏家。请从以下文本中找出 5 句最富有哲理的金句。"
     usr_prompt = subtitle_text[:5000]
     return call_deepseek_llm(sys_prompt, usr_prompt, api_key)
+

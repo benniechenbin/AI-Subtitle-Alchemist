@@ -101,7 +101,7 @@
 
 #### 1. Clone Repository（克隆项目）
 ```bash
-git clone https://github.com/YourUsername/AI-Subtitle-Alchemist.git
+git clone https://github.com/benniechenbin/AI-Subtitle-Alchemist.git
 cd AI-Subtitle-Alchemist
 ```
 
@@ -180,5 +180,5 @@ MIT License
 
 ---
 
-<div align="center">Made with ❤️ by YourName</div>
+<div align="center">Made with ❤️ by Bennie</div>
 

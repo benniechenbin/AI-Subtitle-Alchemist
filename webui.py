@@ -8,6 +8,10 @@ import pandas as pd
 import time
 from sentence_transformers import SentenceTransformer
 
+# 获取当前脚本所在的绝对目录
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+# 拼接出数据库的默认路径 (统一使用 subtitle_library.db)
+DEFAULT_DB_PATH = os.path.join(PROJECT_ROOT, "subtitle_library.db")
 # ==========================================
 # 缓存与页面基础
 # ==========================================
@@ -41,12 +45,13 @@ with st.sidebar:
     CONFIG_FILE = "config.json"
     if 'config_loaded' not in st.session_state:
         if os.path.exists(CONFIG_FILE):
+            # 情况 1：老用户，有配置文件（但可能缺少 db_path）
             with open(CONFIG_FILE, 'r') as f:
                 st.session_state['config'] = json.load(f)
         else:
+            # 情况 2：新用户，没有配置文件
             default_path = os.path.join(os.path.expanduser("~"), "Movies", "Subtitles")
             
-            # 如果文件夹不存在，甚至可以贴心地自动创建（可选）
             if not os.path.exists(default_path):
                 try:
                     os.makedirs(default_path)
@@ -54,9 +59,15 @@ with st.sidebar:
                     pass
 
             st.session_state['config'] = {
-                'library_path': default_path,  # <--- 使用变量
-                'embedding_model': "moka-ai/m3e-base"
+                'library_path': default_path,
+                'embedding_model': "moka-ai/m3e-base",
+                'db_path': DEFAULT_DB_PATH
             }
+
+        # 🔥【关键修改】这行代码必须顶格写（和上面的 if/else 对齐），不要缩进！
+        # 这样无论是情况 1 还是情况 2，最后都会执行这个检查
+        if 'db_path' not in st.session_state['config']:
+            st.session_state['config']['db_path'] = DEFAULT_DB_PATH
         st.session_state['config_loaded'] = True
 
     def save_config():
@@ -222,6 +233,24 @@ with tab1:
     if st.session_state['analysis_data'] is not None:
         st.divider()
         st.subheader("第二步：确认元数据")
+        # ✨ 新增：批量修改工具栏
+        with st.expander("🛠️ 批量修改工具 (针对剧集导入)", expanded=True):
+            col_b1, col_b2, col_b3 = st.columns([2, 1, 1])
+            with col_b1:
+                bulk_title = st.text_input("统一修改片名", placeholder="输入正确的剧集名称")
+            with col_b2:
+                bulk_year = st.number_input("统一修改年份", min_value=1900, max_value=2100, value=2025)
+            with col_b3:
+                st.write("操作")
+                if st.button("🪄 一键应用到所有行", use_container_width=True):
+                    # 直接修改 session_state 中的数据
+                    for item in st.session_state['analysis_data']:
+                        if bulk_title:
+                            item['识别片名'] = bulk_title
+                        if bulk_year:
+                            item['年份'] = bulk_year
+                    st.toast("已批量更新元数据！")
+                    st.rerun() # 刷新界面以显示更新后的数据
         edited_df = st.data_editor(
             pd.DataFrame(st.session_state['analysis_data']),
             column_config={
@@ -490,6 +519,7 @@ with tab3:
         )
     with c2:
         script_style = st.selectbox("🎭 脚本风格", ["情感混剪 (遗憾/治愈)", "燃向踩点 (动作/励志)", "预告片 (悬疑/惊悚)"])
+        allow_vo = st.toggle("🎤 允许生成旁白 (VO)", value=True, help="勾选后，AI 会在台词之间加入深沉或治愈的旁白作为衔接。")
     default_prompt = """主题：关于【时间与遗憾】
 要求：
 1. 开头要慢，用几句关于“错过”的台词铺垫。
@@ -502,32 +532,119 @@ with tab3:
         height=200,
         placeholder="在这里告诉 AI 你想剪辑什么样的视频..."
     )
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        # ✨ 新增开关
+        allow_dup = st.checkbox("允许重复台词 (台词混剪模式)", value=False, help="如果你想做'10部电影说同一句话'的混剪，请勾选此项。")
+    
     generate_btn = st.button("🚀 生成混剪脚本", type="primary", use_container_width=True, disabled=not has_key)
     if generate_btn:
         with st.status("🎬 AI 正在创作剧本...", expanded=True) as status:
-            st.write("1. 🧠 理解导演意图...")
-            time.sleep(0.5)
-            st.write(f"2. 🔍 正在检索 '{selected_movie}' 相关的语义向量...")
-            time.sleep(1)
-            st.write(f"3. ✍️ 正在请求 {llm_cfg.get('model_name')} 生成分镜...")
-            sys_prompt = "你是一个专业的视频剪辑师。请把用户提供的素材和要求，写成Markdown格式的剪辑脚本表。"
-            user_input = f"素材范围：{selected_movie}\n风格：{script_style}\n详细要求：{prompt_text}"
             try:
-                response = core.call_deepseek_llm(
-                    sys_prompt, 
-                    user_input, 
-                    llm_cfg['api_key']
+                # 1. 语义检索 (RAG 核心步骤)
+                st.write("1. 🔍 正在从数据库检索相关台词与时间码...")
+                
+                # 如果是全库搜索，就用用户的 Prompt 去搜；如果是特定电影，就先搜电影再过滤
+                # 这里为了简化，我们直接用用户的 Prompt 去做语义搜索
+                search_query = prompt_text[:200] # 截取一部分作为搜索词
+                
+                # 调用 core 的搜索功能 (注意：需要确保 core_logic 有 search_db_semantic)
+                # 1. 加载模型
+                model_instance = load_embedding_model(st.session_state['config']['embedding_model'])
+                
+                # 2. 确定筛选条件（注意缩进必须对齐）
+                filter_movie = None if selected_movie == "(全库综合搜索)" else selected_movie
+
+                # 3. 调用优化后的语义搜索
+                search_results = core.search_db_semantic_optimized(
+                    search_query, 
+                    model_instance, 
+                    final_k=30, 
+                    db_path=st.session_state['config']['db_path'],
+                    allow_duplicates=allow_dup,
+                    target_movie=filter_movie  # 👈 必须传给 core 层
                 )
+                
+                if not search_results:
+                    st.error("❌ 未找到相关素材，请尝试更换关键词。")
+                    st.stop()
+
+                # 2. 构建上下文 (Context Construction)
+                st.write(f"2. 🧠 正在筛选并组装 {len(search_results)} 条素材...")
+                
+                context_text = ""
+                for res in search_results:
+                    # --- 核心：格式化来源字符串 ---
+                    # 格式：[《电影名》S01E02 00:12:30]
+                    source_tag = f"《{res['movie']}》"
+                    if res.get('season') and res.get('episode'):
+                         source_tag += f"S{str(res['season']).zfill(2)}E{str(res['episode']).zfill(2)}"
+                    
+                    timestamp = res['time']
+                    full_tag = f"[{source_tag} {timestamp}]"
+                    
+                    # 拼接到上下文里，喂给 AI
+                    context_text += f"素材ID: {full_tag}\n台词内容: {res['content']}\n\n"
+
+                # 3. 组装最终 Prompt
+                st.write(f"3. ✍️ 正在请求 {llm_cfg.get('model_name')} 生成分镜...")
+                
+                system_prompt = """
+你是一个专业的视频剪辑师。请根据用户提供的【素材库】撰写剪辑脚本。
+
+【你是一个专业的视频剪辑师。请根据用户提供的【素材库】撰写剪辑脚本。
+
+【创作规则】
+1. **原声优先**：核心情感和关键转折尽量使用素材库中的台词，并标注【时间码来源】。
+2. **旁白衔接**：允许加入【旁白 (Voiceover)】来衔接剧情、渲染氛围或交代背景。旁白应具有电影感。
+3. **格式区分**：
+   - 旁白请标注为：**【旁白】**：“......”
+   - 原声请标注为：**[《片名》00:00:00] 【角色】**：“......”
+4. **输出格式**：Markdown 表格或清晰的分镜列表。
+"""
+
+                vo_instruction = "允许加入旁白以增强感染力。" if allow_vo else "严格禁止旁白，仅使用原声台词。"
+                user_prompt_final = f"""
+【旁白要求】
+{vo_instruction}
+【核心创作风格】
+本次视频的主基调是：{script_style}。请在画面描述和转场节奏中充分体现这种风格。
+
+【用户具体需求】
+{prompt_text}
+
+【可用素材库 (Reference Material)】
+{context_text}
+
+请开始编写脚本：
+"""
+
+                # 4. 调用 LLM (传入 UI 配置的所有参数)
+                response = core.call_llm_api(
+                    system_prompt, 
+                    user_prompt_final, 
+                    llm_cfg['api_key'],
+                    model_name=llm_cfg['model_name'], # 👈 传入选中的模型名
+                    base_url=llm_cfg['base_url']      # 👈 传入配置的 Base URL
+                )
+                
                 status.update(label="✅ 创作完成！", state="complete", expanded=False)
+                
                 st.divider()
-                st.subheader("📄 混剪脚本")
+                st.subheader("📄 包含时间码的混剪脚本")
                 st.markdown(response)
+                
+                # 下载按钮
                 st.download_button(
                     label="📥 导出脚本 (.md)",
                     data=response,
-                    file_name=f"script_{int(time.time())}.md",
+                    file_name=f"script_with_timecode_{int(time.time())}.md",
                     mime="text/markdown"
                 )
+
             except Exception as e:
                 status.update(label="❌ 生成失败", state="error")
-                st.error(f"调用 API 出错: {e}")
+                st.error(f"处理过程中出错: {str(e)}")
+                # 打印堆栈以便调试
+                import traceback
+                st.code(traceback.format_exc())
