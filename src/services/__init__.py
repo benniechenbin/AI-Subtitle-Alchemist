@@ -4,6 +4,7 @@ from .scan_service import scan_library
 from .script_service import ScriptService
 from .search import search_semantic
 from .tmdb_service import fetch_tmdb_poster
+from .poster_service import PosterBackfillResult, backfill_missing_posters
 from .highlight_service import HighlightService 
 from .bgm_service import BgmService
 
@@ -15,6 +16,8 @@ __all__ = [
     "scan_library",
     "search_semantic",
     "fetch_tmdb_poster",
+    "PosterBackfillResult",
+    "backfill_missing_posters",
     "HighlightService", 
     "BgmService"
 ]

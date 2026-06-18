@@ -9,6 +9,10 @@ from src.config import settings
 from src.models import ScanDoneResult
 from src.services.scan_service import scan_library
 from src.services.search import search_semantic
+from src.services.poster_service import (
+    PosterBackfillResult,
+    backfill_missing_posters,
+)
 from src.services.tmdb_service import fetch_tmdb_poster
 from src.services.highlight_service import HighlightService
 from src.observability.logger import logger
@@ -80,7 +84,10 @@ def render_database_tab(ctx: dict) -> None:
                         if not movie["poster_url"]:
                             if st.button("🖼️ 抓取海报", key=f"poster_{movie['movie_name']}", width="stretch"):
                                 with st.spinner("逆向抓取中..."):
-                                    poster_url = fetch_tmdb_poster(movie["movie_name"])
+                                    poster_url = fetch_tmdb_poster(
+                                        movie["movie_name"],
+                                        release_year=movie["release_year"],
+                                    )
                                     if poster_url:
                                         db.update_movie_poster(db_path, movie["movie_name"], poster_url)
                                         st.toast(f"🎉 海报抓取成功！")
@@ -213,16 +220,13 @@ def _run_rebuild_index(library_path: str, embedding_model: str, db_path: str) ->
         try:
             model = cached_embedding_model(embedding_model)
             st.write(f"📂 开始扫描目录: {library_path}")
+            scan_result = None
 
             for log, data in scan_library(
                 library_path, model, embedding_model, db_path
             ):
                 if log == "DONE" and isinstance(data, ScanDoneResult):
-                    status.update(
-                        label=f"🎉 处理完成！新增 {data.new_added} 个文件",
-                        state="complete",
-                        expanded=False,
-                    )
+                    scan_result = data
                     if data.missing_files:
                         st.error(
                             f"发现 {len(data.missing_files)} 个文件已从硬盘移除。"
@@ -233,12 +237,55 @@ def _run_rebuild_index(library_path: str, embedding_model: str, db_path: str) ->
                 else:
                     st.write(log)
 
+            poster_result = PosterBackfillResult()
+            if scan_result:
+                st.write("🖼️ 开始自动补齐缺失海报...")
+                poster_result = backfill_missing_posters(
+                    db_path,
+                    progress_callback=st.write,
+                )
+                _render_poster_backfill_summary(poster_result)
+                status.update(
+                    label=_rebuild_complete_label(scan_result, poster_result),
+                    state="complete",
+                    expanded=False,
+                )
+
             cached_library_stats.clear()
             time.sleep(1)
             st.rerun()
         except Exception as e:
             status.update(label="❌ 发生错误", state="error")
             st.error(f"扫描中断: {str(e)}")
+
+
+def _render_poster_backfill_summary(result: PosterBackfillResult) -> None:
+    if result.skipped_reason == "missing_tmdb_api_key":
+        st.warning("缺少 TMDB API Key，已跳过自动海报抓取。索引重建已完成。")
+        return
+
+    if result.pending_count == 0:
+        return
+
+    st.write(
+        "🖼️ 海报抓取完成："
+        f"待补 {result.pending_count} 部，"
+        f"成功 {result.success_count} 部，"
+        f"未找到 {result.not_found_count} 部，"
+        f"失败 {result.error_count} 部。"
+    )
+
+
+def _rebuild_complete_label(
+    scan_result: ScanDoneResult,
+    poster_result: PosterBackfillResult,
+) -> str:
+    label = f"🎉 处理完成！新增 {scan_result.new_added} 个文件"
+    if poster_result.success_count:
+        return f"{label}，补齐 {poster_result.success_count} 张海报"
+    if poster_result.skipped_reason:
+        return f"{label}，海报抓取已跳过"
+    return f"{label}，海报已检查"
 
 
 def _render_search_results(search_results: list[dict]) -> None:

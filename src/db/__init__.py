@@ -14,6 +14,7 @@ from .repos.media_repo import (
     get_library_stats,
     sync_movies_to_meta,
     get_movies_with_meta,
+    get_movies_missing_posters,
     update_movie_poster,
 )
 from .repos.quote_repo import get_golden_quotes
@@ -43,6 +44,7 @@ __all__ = [
     "get_library_stats",
     "sync_movies_to_meta",
     "get_movies_with_meta",
+    "get_movies_missing_posters",
     "update_movie_poster",
     "get_golden_quotes",
     "insert_or_update_bgm",

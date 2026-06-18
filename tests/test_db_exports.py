@@ -9,6 +9,7 @@ def test_db_public_api_exports():
         "fetch_vectors_for_search",
         "get_all_movies",
         "get_library_stats",
+        "get_movies_missing_posters",
         "get_golden_quotes",
         "insert_or_update_bgm",
         "get_all_bgm",

@@ -65,6 +65,22 @@ def get_movies_with_meta(db_path=None) -> list[dict]:
     finally:
         conn.close()
 
+def get_movies_missing_posters(db_path=None) -> list[dict]:
+    conn = get_db_connection(db_path)
+    c = conn.cursor()
+    try:
+        c.execute("""
+            SELECT movie_name, release_year
+            FROM movies_meta
+            WHERE movie_name IS NOT NULL
+              AND (poster_url IS NULL OR TRIM(poster_url) = '')
+            ORDER BY movie_name
+        """)
+        columns = ["movie_name", "release_year"]
+        return [dict(zip(columns, row)) for row in c.fetchall()]
+    finally:
+        conn.close()
+
 def update_movie_poster(db_path: str, movie_name: str, poster_url: str) -> None:
     conn = get_db_connection(db_path)
     c = conn.cursor()

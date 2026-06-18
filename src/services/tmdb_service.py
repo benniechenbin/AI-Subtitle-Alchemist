@@ -3,12 +3,20 @@ import requests
 from src.config.settings import settings
 from src.observability.logger import logger
 
-def fetch_tmdb_poster(movie_name: str, api_key: str = None) -> str | None:
+POSTER_BASE_URL = "https://image.tmdb.org/t/p/w500"
+
+
+def fetch_tmdb_poster(
+    movie_name: str,
+    api_key: str = None,
+    release_year: int | str | None = None,
+) -> str | None:
     """
     通过 TMDB API 搜索影视剧并获取海报 URL。
     
     :param movie_name: 影视剧名称 (如 "葬送的芙莉莲")
     :param api_key: TMDB 的 v3 API Key
+    :param release_year: 可选发行年份，用于优先选择更匹配的结果
     :return: 完整的海报图片 URL，如果没找到则返回 None
     """
 
@@ -33,19 +41,15 @@ def fetch_tmdb_poster(movie_name: str, api_key: str = None) -> str | None:
         response = requests.get(url, params=params, timeout=10)
         response.raise_for_status()  # 如果状态码不是 200，主动抛出异常
         data = response.json()
+        results = data.get("results") or []
 
-        if data.get("results"):
-            # 取第一个最匹配的结果
-            first_result = data["results"][0]
-            poster_path = first_result.get("poster_path")
+        if results:
+            selected = _select_poster_result(results, release_year)
+            if selected:
+                return f"{POSTER_BASE_URL}{selected['poster_path']}"
 
-            if poster_path:
-                # 拼接完整图片地址 (w500 是中等分辨率，适合在 UI 列表中展示)
-                full_url = f"https://image.tmdb.org/t/p/w500{poster_path}"
-                return full_url
-            else:
-                logger.warning(f"⚠️ TMDB 收录了《{movie_name}》，但目前没有上传海报。")
-                return None
+            logger.warning(f"⚠️ TMDB 收录了《{movie_name}》，但目前没有上传海报。")
+            return None
         else:
             logger.warning(f"⚠️ 在 TMDB 中未找到关于《{movie_name}》的记录。")
             return None
@@ -53,3 +57,39 @@ def fetch_tmdb_poster(movie_name: str, api_key: str = None) -> str | None:
     except requests.exceptions.RequestException as e:
         logger.error(f"❌ 网络请求 TMDB 失败: {e}")
         return None
+
+
+def _select_poster_result(
+    results: list[dict],
+    release_year: int | str | None = None,
+) -> dict | None:
+    poster_candidates = [result for result in results if result.get("poster_path")]
+    if not poster_candidates:
+        return None
+
+    target_year = _normalize_year(release_year)
+    if target_year is not None:
+        for result in poster_candidates:
+            if _extract_result_year(result) == target_year:
+                return result
+
+    return poster_candidates[0]
+
+
+def _extract_result_year(result: dict) -> int | None:
+    date_value = result.get("release_date") or result.get("first_air_date") or ""
+    if not isinstance(date_value, str) or len(date_value) < 4:
+        return None
+    return _normalize_year(date_value[:4])
+
+
+def _normalize_year(value: int | str | None) -> int | None:
+    if value in (None, ""):
+        return None
+    try:
+        year = int(value)
+    except (TypeError, ValueError):
+        return None
+    if year <= 0:
+        return None
+    return year
