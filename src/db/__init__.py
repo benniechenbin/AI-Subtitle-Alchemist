@@ -2,11 +2,14 @@ from .base import get_db_connection
 from .migrations import init_db
 from .repos.subtitle_repo import (
     insert_subtitles_batch,
-    fetch_vectors_for_search,
+    fetch_subtitles_by_ids,
+    iter_subtitles_for_vector_rebuild,
+    update_subtitle_embedding_metadata_batch,
     get_context_by_id,
     search_keyword,
     check_file_exists,
     get_all_file_paths,
+    get_subtitle_ids_by_paths,
     delete_records_by_path,
 )
 from .repos.media_repo import (
@@ -16,6 +19,7 @@ from .repos.media_repo import (
     get_movies_with_meta,
     get_movies_missing_posters,
     update_movie_poster,
+    upsert_movie_metadata,
 )
 from .repos.quote_repo import get_golden_quotes
 from .repos.bgm_repo import insert_or_update_bgm, get_all_bgm
@@ -34,11 +38,14 @@ __all__ = [
     "get_db_connection",
     "init_db",
     "insert_subtitles_batch",
-    "fetch_vectors_for_search",
+    "fetch_subtitles_by_ids",
+    "iter_subtitles_for_vector_rebuild",
+    "update_subtitle_embedding_metadata_batch",
     "get_context_by_id",
     "search_keyword",
     "check_file_exists",
     "get_all_file_paths",
+    "get_subtitle_ids_by_paths",
     "delete_records_by_path",
     "get_all_movies",
     "get_library_stats",
@@ -46,6 +53,7 @@ __all__ = [
     "get_movies_with_meta",
     "get_movies_missing_posters",
     "update_movie_poster",
+    "upsert_movie_metadata",
     "get_golden_quotes",
     "insert_or_update_bgm",
     "get_all_bgm",

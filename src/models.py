@@ -13,6 +13,7 @@ class ProcessResult:
     processed_files: list[dict]
     stats: dict
     pending_rows: list
+    pending_vectors: list
 
 
 @dataclass

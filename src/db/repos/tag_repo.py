@@ -17,7 +17,10 @@ def add_tag(db_path: str, name: str, tag_type: str) -> int:
         c.execute("INSERT OR IGNORE INTO tags (name, type) VALUES (?, ?)", (name, tag_type))
         conn.commit()
         c.execute("SELECT id FROM tags WHERE name = ? AND type = ?", (name, tag_type))
-        return c.fetchone()[0]
+        row = c.fetchone()
+        if row is None:
+            raise RuntimeError(f"Failed to insert or retrieve tag: {name}/{tag_type}")
+        return row[0]
     finally:
         conn.close()
 

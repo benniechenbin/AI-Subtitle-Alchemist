@@ -20,7 +20,19 @@ def test_migration_empty_db():
     c.execute("SELECT MAX(version) FROM schema_migrations")
     version = c.fetchone()[0]
     print(f"Final Version: {version}")
-    assert version == 2
+    assert version == 5
+
+    c.execute("PRAGMA table_info(movies_meta)")
+    movie_columns = {row[1] for row in c.fetchall()}
+    assert {
+        "media_key",
+        "tmdb_id",
+        "overview",
+        "genres_json",
+        "certification",
+        "tmdb_metadata_json",
+        "extra_metadata_json",
+    } <= movie_columns
     
     # 验证新表是否存在
     c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='tags'")
@@ -64,7 +76,7 @@ def test_migration_v1_upgrade():
     c.execute("SELECT MAX(version) FROM schema_migrations")
     version = c.fetchone()[0]
     print(f"Upgraded to Version: {version}")
-    assert version == 2
+    assert version == 5
     
     # 验证旧数据保留
     c.execute("SELECT track_name, valence, artist FROM bgm_library WHERE track_name='old_song'")

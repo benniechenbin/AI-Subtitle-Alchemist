@@ -16,7 +16,6 @@ def _subtitle_row(movie_name: str, year: int, suffix: str):
         "00:00:01,000",
         "00:00:02,000",
         f"{movie_name} line",
-        None,
         "fake-model",
         0,
     )

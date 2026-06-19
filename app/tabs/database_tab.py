@@ -9,6 +9,7 @@ from src.config import settings
 from src.models import ScanDoneResult
 from src.services.scan_service import scan_library
 from src.services.search import search_semantic
+from src.services.vector_index import get_vector_index_service
 from src.services.poster_service import (
     PosterBackfillResult,
     backfill_missing_posters,
@@ -38,6 +39,24 @@ def render_database_tab(ctx: dict) -> None:
 
     if rebuild_btn:
         _run_rebuild_index(library_path, embedding_model, db_path)
+
+    if st.session_state.get("pending_cleanup_files"):
+        files = st.session_state["pending_cleanup_files"]
+        st.error(f"发现 {len(files)} 个文件已从硬盘移除。")
+        c_clean, c_cancel, _ = st.columns([1.5, 1, 5])
+        with c_clean:
+            if st.button("🧹 立即清理无效记录", type="primary", width="stretch", key="run_cleanup_files"):
+                deleted_ids = db.delete_records_by_path(db_path, files)
+                get_vector_index_service().delete(db_path, deleted_ids)
+                st.session_state.pop("pending_cleanup_files", None)
+                cached_library_stats.clear()
+                st.toast("✅ 无效记录清理成功！")
+                time.sleep(1)
+                st.rerun()
+        with c_cancel:
+            if st.button("取消", width="stretch", key="cancel_cleanup_files"):
+                st.session_state.pop("pending_cleanup_files", None)
+                st.rerun()
 
     st.divider()
 
@@ -223,22 +242,29 @@ def _run_rebuild_index(library_path: str, embedding_model: str, db_path: str) ->
             scan_result = None
 
             for log, data in scan_library(
-                library_path, model, embedding_model, db_path
+                library_path,
+                model,
+                embedding_model,
+                db_path,
+                sync_vector_index=False,
             ):
                 if log == "DONE" and isinstance(data, ScanDoneResult):
                     scan_result = data
                     if data.missing_files:
-                        st.error(
-                            f"发现 {len(data.missing_files)} 个文件已从硬盘移除。"
-                        )
-                        if st.button("🧹 立即清理无效记录"):
-                            db.delete_records_by_path(db_path, data.missing_files)
-                            st.rerun()
+                        st.session_state["pending_cleanup_files"] = data.missing_files
                 else:
                     st.write(log)
 
             poster_result = PosterBackfillResult()
             if scan_result:
+                st.write("🧭 正在同步向量索引...")
+                rebuilt = get_vector_index_service().rebuild(
+                    db_path,
+                    embedding_model,
+                    model=model,
+                )
+                if not rebuilt:
+                    st.warning("⚠️ 向量索引同步被跳过（可能缺少模型或 sqlite-vec 不可用）")
                 st.write("🖼️ 开始自动补齐缺失海报...")
                 poster_result = backfill_missing_posters(
                     db_path,

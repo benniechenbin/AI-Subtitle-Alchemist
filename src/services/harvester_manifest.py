@@ -96,6 +96,8 @@ def resolve_subtitle_metadata(
             "imdb_id": item.get("imdb_id"),
             "provider": item.get("provider"),
             "source_id": item.get("source_id"),
+            "media_key": item.get("media_key"),
+            "tmdb_metadata": _tmdb_metadata(item.get("tmdb_metadata")),
             "source": "harvester",
         }
         logger.info(
@@ -117,8 +119,14 @@ def resolve_subtitle_metadata(
         "imdb_id": None,
         "provider": None,
         "source_id": None,
+        "media_key": None,
+        "tmdb_metadata": None,
         "source": "guessit",
     }
+
+
+def _tmdb_metadata(value: object) -> dict[str, Any] | None:
+    return dict(value) if isinstance(value, dict) else None
 
 
 def _find_manifest_item(

@@ -79,6 +79,7 @@ class UserPreferences(BaseModel):
     llm_provider: str = "DeepSeek"
     llm_model_name: str = "deepseek-chat"
     llm_base_url: str = "https://api.deepseek.com"
+    harvester_api_base_url: str = "http://127.0.0.1:8000"
 
 
 # =====================================================================
@@ -142,6 +143,7 @@ class SettingsManager:
             "llm_provider": "llm_provider",
             "llm_model_name": "llm_model_name",
             "llm_base_url": "llm_base_url",
+            "harvester_api_base_url": "harvester_api_base_url",
         }
         updates = {
             target: legacy[source]

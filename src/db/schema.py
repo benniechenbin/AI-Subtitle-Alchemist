@@ -13,7 +13,6 @@ CREATE TABLE IF NOT EXISTS subtitles (
     start_time TEXT,
     end_time TEXT,
     content TEXT,
-    embedding BLOB,
     embedding_model TEXT,
     embedding_dim INTEGER
 )
@@ -24,7 +23,44 @@ CREATE TABLE IF NOT EXISTS movies_meta (
     movie_name TEXT PRIMARY KEY,
     poster_url TEXT,
     release_year INTEGER,
-    highlight_status INTEGER DEFAULT 0  -- 0: 未挖掘, 1: 正在挖掘, 2: 已挖掘, 3: 失败
+    highlight_status INTEGER DEFAULT 0,
+    media_key TEXT,
+    media_type TEXT,
+    tmdb_id INTEGER,
+    imdb_id TEXT,
+    original_title TEXT,
+    aliases_json TEXT,
+    overview TEXT,
+    tagline TEXT,
+    genres_json TEXT,
+    keywords_json TEXT,
+    certification TEXT,
+    certification_country TEXT,
+    adult INTEGER,
+    original_language TEXT,
+    origin_countries_json TEXT,
+    spoken_languages_json TEXT,
+    release_date TEXT,
+    runtime_minutes INTEGER,
+    status TEXT,
+    first_air_date TEXT,
+    last_air_date TEXT,
+    number_of_seasons INTEGER,
+    number_of_episodes INTEGER,
+    in_production INTEGER,
+    networks_json TEXT,
+    poster_path TEXT,
+    backdrop_path TEXT,
+    homepage TEXT,
+    tmdb_metadata_json TEXT,
+    extra_metadata_json TEXT DEFAULT '{}',
+    metadata_source TEXT,
+    metadata_schema_version INTEGER,
+    tmdb_language TEXT,
+    tmdb_region TEXT,
+    tmdb_fetched_at TEXT,
+    created_at TEXT,
+    updated_at TEXT
 )
 """
 
@@ -92,6 +128,17 @@ CREATE TABLE IF NOT EXISTS quote_tags (
     PRIMARY KEY (quote_id, tag_id),
     FOREIGN KEY(quote_id) REFERENCES golden_quotes(id),
     FOREIGN KEY(tag_id) REFERENCES tags(id)
+)
+"""
+
+SQL_CREATE_VECTOR_INDEX_REGISTRY = """
+CREATE TABLE IF NOT EXISTS vector_index_registry (
+    embedding_model TEXT NOT NULL,
+    embedding_dim INTEGER NOT NULL,
+    backend TEXT NOT NULL,
+    vec_table_name TEXT NOT NULL,
+    updated_at TEXT,
+    PRIMARY KEY (embedding_model, embedding_dim, backend)
 )
 """
 

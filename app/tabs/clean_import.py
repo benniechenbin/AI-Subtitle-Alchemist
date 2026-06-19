@@ -14,6 +14,7 @@ from src.services.upload_manifest_adapter import (
     prepare_upload_analysis,
     split_uploaded_files,
 )
+from src.services.vector_index import get_vector_index_service
 from src.config import settings
 
 
@@ -172,7 +173,7 @@ def _run_batch_process(
             f.seek(0)
             file_inputs.append(UploadedFileInput(name=f.name, raw_bytes=f.read()))
 
-        logs, processed_files, stats, pending_rows = process_uploaded_files(
+        logs, processed_files, stats, pending_rows, pending_vectors = process_uploaded_files(
             file_inputs,
             edited_df.to_dict("records"),
             library_path,
@@ -186,6 +187,7 @@ def _run_batch_process(
         if pending_rows:
             st.session_state["pending_import"] = {
                 "pending_rows": pending_rows,
+                "pending_vectors": pending_vectors,
                 "stats": stats,
             }
 
@@ -259,8 +261,11 @@ def _render_import_confirmation(db_path):
 
     with confirm_col:
         if st.button("确认入库", type="primary", width="stretch", key="confirm_import"):
-            db.insert_subtitles_batch(
-                db_path, st.session_state["pending_import"]["pending_rows"]
+            pending_rows = st.session_state["pending_import"]["pending_rows"]
+            pending_vectors = st.session_state["pending_import"].get("pending_vectors", [])
+            inserted_ids = db.insert_subtitles_batch(db_path, pending_rows)
+            get_vector_index_service().upsert_vector_rows(
+                db_path, inserted_ids, pending_vectors
             )
             st.session_state["pending_import"] = None
             cached_library_stats.clear()

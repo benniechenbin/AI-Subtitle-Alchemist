@@ -4,6 +4,7 @@ import streamlit as st
 
 from app.bootstrap import save_preferences
 from src.config import settings
+from src.services.harvester_api import HarvesterApiClient, HarvesterApiError
 
 
 def render_sidebar() -> dict:
@@ -16,11 +17,14 @@ def render_sidebar() -> dict:
         st.toast("✅ 路径已保存")
 
     library_path = st.text_input(
-        "📂 字幕库根目录",
+        "📂 本地字幕库",
         value=prefs.library_path,
         key="path_input",
         on_change=save_path,
     )
+
+    st.divider()
+    harvester_api_base_url, harvester_health = _render_harvester_config()
 
     st.divider()
     model_options = {
@@ -70,7 +74,42 @@ def render_sidebar() -> dict:
     with st.expander("🔑 LLM 大模型配置", expanded=False):
         _render_llm_config()
 
-    return {"library_path": library_path, "embedding_model": sel_mod}
+    return {
+        "library_path": library_path,
+        "embedding_model": sel_mod,
+        "harvester_api_base_url": harvester_api_base_url,
+        "harvester_health": harvester_health,
+    }
+
+
+def _render_harvester_config() -> tuple[str, dict | None]:
+    prefs = settings.prefs
+
+    def save_harvester_url():
+        save_preferences(
+            {"harvester_api_base_url": st.session_state["harvester_api_input"]}
+        )
+        st.toast("✅ Harvester API 已保存")
+
+    with st.expander("🌾 字幕采集服务", expanded=False):
+        base_url = st.text_input(
+            "Harvester API",
+            value=prefs.harvester_api_base_url,
+            key="harvester_api_input",
+            on_change=save_harvester_url,
+        )
+
+        health = None
+        try:
+            health = HarvesterApiClient(base_url).health()
+            st.success("✅ Harvester 已连接")
+            output_dir = health.get("output_dir")
+            if output_dir:
+                st.caption(f"output_dir: `{output_dir}`")
+        except HarvesterApiError as exc:
+            st.warning(f"未连接 Harvester：{exc}")
+
+    return base_url, health
 
 
 def _render_llm_config() -> None:

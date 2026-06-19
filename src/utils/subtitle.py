@@ -137,7 +137,10 @@ def parse_srt_content(content: str) -> list[dict]:
         match = pattern_fallback.search(line)
         if match:
             if current_entry:
-                parsed_data.append(current_entry)
+                cleaned = clean_subtitle_text(current_entry["text"]).replace("\n", " ")
+                if cleaned:
+                    current_entry["text"] = cleaned
+                    parsed_data.append(current_entry)
             start, end, inline_text = match.groups()
             text_content = inline_text.strip()
             text_content = re.sub(r"\[.*?\]", "", text_content).strip()
@@ -154,7 +157,10 @@ def parse_srt_content(content: str) -> list[dict]:
         ):
             current_entry["text"] = (current_entry["text"] + " " + line).strip()
     if current_entry:
-        parsed_data.append(current_entry)
+        cleaned = clean_subtitle_text(current_entry["text"]).replace("\n", " ")
+        if cleaned:
+            current_entry["text"] = cleaned
+            parsed_data.append(current_entry)
     return parsed_data
 
 

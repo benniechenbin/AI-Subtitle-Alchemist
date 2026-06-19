@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from src.services.harvester_manifest import MANIFEST_NAME, normalize_manifest_path
+from src.services.tmdb_service import search_tmdb_metadata
 from src.utils import analyze_filenames
 
 
@@ -29,6 +30,7 @@ def prepare_upload_analysis(uploaded_files: list[Any]) -> UploadAnalysisResult:
     fallback_rows = analyze_filenames([f.name for f in subtitle_files])
     rel_path_index, basename_index = _build_manifest_indexes(manifest_items)
     analysis_data = []
+    tmdb_cache = {}
 
     for upload_file, fallback_row in zip(subtitle_files, fallback_rows):
         row = dict(fallback_row)
@@ -45,6 +47,25 @@ def prepare_upload_analysis(uploaded_files: list[Any]) -> UploadAnalysisResult:
             row["状态"] = "来自Harvester JSON"
         elif conflict:
             row["状态"] = "JSON匹配冲突，请手动确认"
+        else:
+            guessed_title = row.get("识别片名")
+            guessed_year = row.get("年份")
+            
+            if guessed_title:
+                cache_key = (guessed_title, guessed_year)
+                if cache_key not in tmdb_cache:
+                    metadata = search_tmdb_metadata(guessed_title, release_year=guessed_year)
+                    tmdb_cache[cache_key] = metadata
+                else:
+                    metadata = tmdb_cache[cache_key]
+
+                if metadata and metadata.get("title"):
+                    row["识别片名"] = metadata["title"]
+                    if metadata.get("year"):
+                        row["年份"] = metadata["year"]
+                    row["状态"] = "✅ TMDB精准匹配"
+                elif "状态" not in row or not row["状态"]:
+                    row["状态"] = "已从文件名提取"
 
         analysis_data.append(row)
 

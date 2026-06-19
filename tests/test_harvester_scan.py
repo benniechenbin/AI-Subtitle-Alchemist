@@ -95,6 +95,116 @@ def test_scan_staging_manifest_uses_json_title_and_year(tmp_path):
     assert rows[0]["year"] == 2023
 
 
+def test_scan_staging_manifest_persists_tmdb_metadata(tmp_path):
+    root = tmp_path / "staging"
+    db_path = tmp_path / "tmdb.db"
+    _write_srt(root / "movie_980477" / "demo.zh.srt", "Metadata line")
+    tmdb_metadata = {
+        "schema_version": 1,
+        "source": "tmdb",
+        "fetched_at": "2026-06-19T00:00:00+00:00",
+        "language": "zh-CN",
+        "region": "CN",
+        "content": {
+            "media_type": "movie",
+            "tmdb_id": 980477,
+            "imdb_id": "tt13539646",
+            "original_title": "Demo Original",
+            "aliases": ["Manifest Movie", "Demo Original"],
+            "overview": "用于测试的剧情简介",
+            "tagline": "测试标语",
+            "genres": [{"id": 18, "name": "剧情"}],
+            "keywords": [{"id": 42, "name": "成长"}],
+            "certification": "PG-13",
+            "certification_country": "US",
+            "adult": False,
+            "original_language": "en",
+            "origin_countries": ["US"],
+            "spoken_languages": [{"iso_639_1": "en", "name": "English"}],
+            "release_date": "2023-01-01",
+            "runtime_minutes": 121,
+            "status": "Released",
+            "poster_path": "/poster.jpg",
+            "backdrop_path": "/backdrop.jpg",
+            "homepage": "https://example.com/movie",
+        },
+        "raw": {"responses": {"zh-CN": {"id": 980477, "vote_average": 8.1}}},
+        "errors": [],
+    }
+    _write_manifest(
+        root,
+        [
+            {
+                "media_key": "movie_980477",
+                "media_type": "movie",
+                "tmdb_id": 980477,
+                "imdb_id": "tt13539646",
+                "title": "Manifest Movie",
+                "year": 2023,
+                "subtitle_file": "movie_980477/demo.zh.srt",
+                "tmdb_metadata": tmdb_metadata,
+            }
+        ],
+    )
+
+    rows = _scan_rows(root, db_path)
+    assert rows[0]["movie_name"] == "Manifest Movie"
+
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    try:
+        movie = conn.execute(
+            "SELECT * FROM movies_meta WHERE movie_name = ?",
+            ("Manifest Movie",),
+        ).fetchone()
+    finally:
+        conn.close()
+
+    assert movie["media_key"] == "movie_980477"
+    assert movie["tmdb_id"] == 980477
+    assert movie["overview"] == "用于测试的剧情简介"
+    assert movie["certification"] == "PG-13"
+    assert movie["poster_url"] == "https://image.tmdb.org/t/p/w500/poster.jpg"
+    assert json.loads(movie["genres_json"]) == [{"id": 18, "name": "剧情"}]
+    assert json.loads(movie["keywords_json"]) == [{"id": 42, "name": "成长"}]
+    assert json.loads(movie["tmdb_metadata_json"]) == tmdb_metadata
+    assert json.loads(movie["extra_metadata_json"]) == {}
+
+
+def test_movie_metadata_upsert_does_not_replace_values_with_null(tmp_path):
+    db_path = tmp_path / "upsert.db"
+    db.init_db(str(db_path))
+    db.upsert_movie_metadata(
+        str(db_path),
+        {
+            "movie_name": "Stable Movie",
+            "year": 2024,
+            "media_key": "movie_10",
+            "media_type": "movie",
+            "tmdb_id": 10,
+            "tmdb_metadata": {
+                "schema_version": 1,
+                "content": {"overview": "保留这个简介", "tmdb_id": 10},
+            },
+        },
+    )
+    db.upsert_movie_metadata(
+        str(db_path),
+        {"movie_name": "Stable Movie", "year": None, "tmdb_metadata": None},
+    )
+
+    conn = sqlite3.connect(db_path)
+    try:
+        row = conn.execute(
+            "SELECT release_year, overview, media_key FROM movies_meta WHERE movie_name = ?",
+            ("Stable Movie",),
+        ).fetchone()
+    finally:
+        conn.close()
+
+    assert row == (2024, "保留这个简介", "movie_10")
+
+
 def test_scan_weak_filename_uses_manifest_metadata(tmp_path):
     root = tmp_path / "staging"
     _write_srt(root / "movie_980477" / "Chs.srt", "Weak filename line")

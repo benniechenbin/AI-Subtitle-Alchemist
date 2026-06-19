@@ -1,25 +1,20 @@
 import requests
 
+from src.config.constants import TMDB_POSTER_BASE_URL
 from src.config.settings import settings
 from src.observability.logger import logger
 
-POSTER_BASE_URL = "https://image.tmdb.org/t/p/w500"
 
-
-def fetch_tmdb_poster(
+def search_tmdb_metadata(
     movie_name: str,
     api_key: str = None,
     release_year: int | str | None = None,
-) -> str | None:
+) -> dict | None:
     """
-    通过 TMDB API 搜索影视剧并获取海报 URL。
+    通过 TMDB API 搜索影视剧并获取最佳匹配的元数据。
     
-    :param movie_name: 影视剧名称 (如 "葬送的芙莉莲")
-    :param api_key: TMDB 的 v3 API Key
-    :param release_year: 可选发行年份，用于优先选择更匹配的结果
-    :return: 完整的海报图片 URL，如果没找到则返回 None
+    :return: 包含 title, year, poster_path 的字典，如果没找到则返回 None
     """
-
     effective_key = api_key or settings.env.tmdb_api_key
 
     if not effective_key:
@@ -44,11 +39,18 @@ def fetch_tmdb_poster(
         results = data.get("results") or []
 
         if results:
-            selected = _select_poster_result(results, release_year)
+            selected = _select_best_result(results, release_year)
             if selected:
-                return f"{POSTER_BASE_URL}{selected['poster_path']}"
+                title = selected.get("title") or selected.get("name")
+                if not title:
+                    title = selected.get("original_title") or selected.get("original_name")
+                return {
+                    "title": title,
+                    "year": _extract_result_year(selected),
+                    "poster_path": selected.get("poster_path"),
+                }
 
-            logger.warning(f"⚠️ TMDB 收录了《{movie_name}》，但目前没有上传海报。")
+            logger.warning(f"⚠️ TMDB 收录了《{movie_name}》，但未能找到有效匹配。")
             return None
         else:
             logger.warning(f"⚠️ 在 TMDB 中未找到关于《{movie_name}》的记录。")
@@ -59,21 +61,38 @@ def fetch_tmdb_poster(
         return None
 
 
-def _select_poster_result(
+def fetch_tmdb_poster(
+    movie_name: str,
+    api_key: str = None,
+    release_year: int | str | None = None,
+) -> str | None:
+    """
+    通过 TMDB API 搜索影视剧并获取海报 URL。
+    """
+    metadata = search_tmdb_metadata(movie_name, api_key, release_year)
+    if metadata and metadata.get("poster_path"):
+        return f"{TMDB_POSTER_BASE_URL}{metadata['poster_path']}"
+    return None
+
+
+def _select_best_result(
     results: list[dict],
     release_year: int | str | None = None,
 ) -> dict | None:
-    poster_candidates = [result for result in results if result.get("poster_path")]
-    if not poster_candidates:
+    if not results:
         return None
 
     target_year = _normalize_year(release_year)
     if target_year is not None:
-        for result in poster_candidates:
+        for result in results:
             if _extract_result_year(result) == target_year:
                 return result
 
-    return poster_candidates[0]
+    poster_candidates = [result for result in results if result.get("poster_path")]
+    if poster_candidates:
+        return poster_candidates[0]
+
+    return results[0]
 
 
 def _extract_result_year(result: dict) -> int | None:

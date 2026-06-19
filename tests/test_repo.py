@@ -51,6 +51,8 @@ def test_repository_logic():
     print("BGM timestamp logic passed.")
     
     # 3. 验证电影标签关联
+    c.execute("INSERT INTO movies_meta (movie_name, release_year) VALUES ('Test Movie', 2025)")
+    conn.commit()
     db.link_tag_to_movie(test_db, "Test Movie", tag_id)
     movie_tags = db.get_movie_tags(test_db, "Test Movie")
     assert any(t['name'] == "测试标签" for t in movie_tags)

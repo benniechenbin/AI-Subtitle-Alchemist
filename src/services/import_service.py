@@ -17,13 +17,14 @@ def process_uploaded_files(
     model,
     model_name: str = "",
     db_path: str | None = None,
-) -> tuple[list[str], list[dict], dict, list]:
+) -> tuple[list[str], list[dict], dict, list, list]:
 
     os.makedirs(target_folder, exist_ok=True)
 
     logs: list[str] = []
     processed_files: list[dict] = []
     pending_rows: list = []
+    pending_vectors: list = []
     stats = {"success": 0, "fail": 0, "duplicate": 0}
 
     for file_input, meta in zip(files, metadata_list):
@@ -100,13 +101,15 @@ def process_uploaded_files(
                 s["start"],
                 s["end"],
                 s["text"],
-                emb_blob,
                 model_name if model else None,
                 current_dim,
             )
             pending_rows.append(row)
+            pending_vectors.append(
+                (emb_blob, model_name if model else None, current_dim)
+            )
 
         logs.append(f"✅ 处理完成: {new_name}")
         stats["success"] += 1
 
-    return logs, processed_files, stats, pending_rows
+    return logs, processed_files, stats, pending_rows, pending_vectors
