@@ -1,5 +1,7 @@
 import json
 from collections import defaultdict
+from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from typing import Any
 
@@ -15,11 +17,15 @@ VALID_SUBTITLE_EXTS = {".srt", ".ass", ".ssa", ".vtt", ".txt"}
 class UploadAnalysisResult:
     subtitle_files: list[Any]
     analysis_data: list[dict]
+    tmdb_matches: list[dict | None]
     manifest_detected: bool
     warnings: list[str]
 
 
-def prepare_upload_analysis(uploaded_files: list[Any]) -> UploadAnalysisResult:
+def prepare_upload_analysis(
+    uploaded_files: list[Any],
+    tmdb_search: Callable[..., dict | None] | None = None,
+) -> UploadAnalysisResult:
     subtitle_files, manifest_files = split_uploaded_files(uploaded_files)
     warnings: list[str] = []
     manifest_items: list[dict] = []
@@ -29,11 +35,12 @@ def prepare_upload_analysis(uploaded_files: list[Any]) -> UploadAnalysisResult:
 
     fallback_rows = analyze_filenames([f.name for f in subtitle_files])
     rel_path_index, basename_index = _build_manifest_indexes(manifest_items)
-    analysis_data = []
-    tmdb_cache = {}
+    analysis_data: list[dict] = []
+    query_keys: list[tuple[str, Any] | None] = []
 
     for upload_file, fallback_row in zip(subtitle_files, fallback_rows):
         row = dict(fallback_row)
+        query_key = None
         item, conflict = _match_manifest_item(
             upload_file.name, rel_path_index, basename_index
         )
@@ -50,24 +57,35 @@ def prepare_upload_analysis(uploaded_files: list[Any]) -> UploadAnalysisResult:
         else:
             guessed_title = row.get("识别片名")
             guessed_year = row.get("年份")
-            
             if guessed_title:
-                cache_key = (guessed_title, guessed_year)
-                if cache_key not in tmdb_cache:
-                    metadata = search_tmdb_metadata(guessed_title, release_year=guessed_year)
-                    tmdb_cache[cache_key] = metadata
-                else:
-                    metadata = tmdb_cache[cache_key]
-
-                if metadata and metadata.get("title"):
-                    row["识别片名"] = metadata["title"]
-                    if metadata.get("year"):
-                        row["年份"] = metadata["year"]
-                    row["状态"] = "✅ TMDB精准匹配"
-                elif "状态" not in row or not row["状态"]:
-                    row["状态"] = "已从文件名提取"
+                query_key = (str(guessed_title), guessed_year)
 
         analysis_data.append(row)
+        query_keys.append(query_key)
+
+    searcher = tmdb_search or search_tmdb_metadata
+    tmdb_cache, search_warnings = _search_tmdb_queries(query_keys, searcher)
+    warnings.extend(search_warnings)
+
+    tmdb_matches: list[dict | None] = []
+    for row, query_key in zip(analysis_data, query_keys):
+        metadata = tmdb_cache.get(query_key) if query_key else None
+        if metadata and metadata.get("title"):
+            row["识别片名"] = metadata["title"]
+            if metadata.get("year"):
+                row["年份"] = metadata["year"]
+            row["状态"] = "✅ TMDB精准匹配"
+            tmdb_matches.append(
+                {
+                    "expected_title": row.get("识别片名"),
+                    "expected_year": row.get("年份"),
+                    "metadata": metadata,
+                }
+            )
+        else:
+            if query_key and ("状态" not in row or not row["状态"]):
+                row["状态"] = "已从文件名提取"
+            tmdb_matches.append(None)
 
     if uploaded_files and not subtitle_files:
         warnings.append("未检测到可处理的字幕文件。")
@@ -75,9 +93,37 @@ def prepare_upload_analysis(uploaded_files: list[Any]) -> UploadAnalysisResult:
     return UploadAnalysisResult(
         subtitle_files=subtitle_files,
         analysis_data=analysis_data,
+        tmdb_matches=tmdb_matches,
         manifest_detected=bool(manifest_files),
         warnings=warnings,
     )
+
+
+def _search_tmdb_queries(
+    query_keys: list[tuple[str, Any] | None],
+    searcher: Callable[..., dict | None],
+) -> tuple[dict[tuple[str, Any], dict | None], list[str]]:
+    unique_keys = list(dict.fromkeys(key for key in query_keys if key is not None))
+    if not unique_keys:
+        return {}, []
+
+    results: dict[tuple[str, Any], dict | None] = {}
+    warnings: list[str] = []
+    max_workers = min(4, len(unique_keys))
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = {
+            executor.submit(searcher, title, release_year=year): (title, year)
+            for title, year in unique_keys
+        }
+        for future in as_completed(futures):
+            key = futures[future]
+            try:
+                results[key] = future.result()
+            except Exception as exc:
+                results[key] = None
+                warnings.append(f"TMDB 匹配失败，已保留文件名识别结果: {key[0]} ({exc})")
+
+    return results, warnings
 
 
 def split_uploaded_files(uploaded_files: list[Any]) -> tuple[list[Any], list[Any]]:

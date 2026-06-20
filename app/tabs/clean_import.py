@@ -16,6 +16,7 @@ from src.services.upload_manifest_adapter import (
 )
 from src.services.vector_index import get_vector_index_service
 from src.config import settings
+from src.observability.logger import logger
 
 
 def render_clean_import_tab(ctx: dict) -> None:
@@ -34,6 +35,8 @@ def render_clean_import_tab(ctx: dict) -> None:
         st.session_state["pending_import"] = None
     if "subtitle_upload_files" not in st.session_state:
         st.session_state["subtitle_upload_files"] = []
+    if "tmdb_matches" not in st.session_state:
+        st.session_state["tmdb_matches"] = []
     if "upload_signature" not in st.session_state:
         st.session_state["upload_signature"] = None
 
@@ -69,9 +72,13 @@ def render_clean_import_tab(ctx: dict) -> None:
                 st.session_state["subtitle_upload_files"] = (
                     upload_analysis.subtitle_files
                 )
+                st.session_state["tmdb_matches"] = upload_analysis.tmdb_matches
                 st.session_state["process_done"] = False
 
-    if st.session_state["analysis_data"] is not None:
+    if (
+        st.session_state["analysis_data"] is not None
+        and not st.session_state.get("pending_import")
+    ):
         subtitle_upload_files = st.session_state.get("subtitle_upload_files", [])
         if subtitle_upload_files:
             _render_metadata_editor(
@@ -127,6 +134,7 @@ def _render_metadata_editor(uploaded_files, library_path, embedding_model, db_pa
         hide_index=True,
         key=editor_key,
     )
+    st.caption("修改 TMDB 匹配后的片名或年份，会自动取消该 TMDB 元数据绑定。")
 
     st.divider()
     col_opt, col_btn = st.columns([2, 1])
@@ -147,11 +155,18 @@ def _render_metadata_editor(uploaded_files, library_path, embedding_model, db_pa
             embedding_model,
             db_path,
             skip_embedding,
+            st.session_state.get("tmdb_matches", []),
         )
 
 
 def _run_batch_process(
-    uploaded_files, edited_df, library_path, embedding_model, db_path, skip_embedding
+    uploaded_files,
+    edited_df,
+    library_path,
+    embedding_model,
+    db_path,
+    skip_embedding,
+    tmdb_matches,
 ):
     with st.status("正在处理（转码与落盘）...", expanded=True) as status:
         model_instance = None
@@ -173,13 +188,21 @@ def _run_batch_process(
             f.seek(0)
             file_inputs.append(UploadedFileInput(name=f.name, raw_bytes=f.read()))
 
-        logs, processed_files, stats, pending_rows, pending_vectors = process_uploaded_files(
+        (
+            logs,
+            processed_files,
+            stats,
+            pending_rows,
+            pending_vectors,
+            pending_meta,
+        ) = process_uploaded_files(
             file_inputs,
             edited_df.to_dict("records"),
             library_path,
             model_instance,
             model_name=current_model_name,
             db_path=db_path,
+            tmdb_matches=tmdb_matches,
         )
 
         st.session_state["process_logs"] = logs
@@ -188,6 +211,7 @@ def _run_batch_process(
             st.session_state["pending_import"] = {
                 "pending_rows": pending_rows,
                 "pending_vectors": pending_vectors,
+                "pending_meta": pending_meta,
                 "stats": stats,
             }
 
@@ -216,6 +240,7 @@ def _metadata_editor_key() -> str:
 def _clear_upload_state() -> None:
     st.session_state["analysis_data"] = None
     st.session_state["subtitle_upload_files"] = []
+    st.session_state["tmdb_matches"] = []
     st.session_state["process_done"] = False
     st.session_state["processed_files"] = []
     st.session_state["pending_import"] = None
@@ -263,15 +288,31 @@ def _render_import_confirmation(db_path):
         if st.button("确认入库", type="primary", width="stretch", key="confirm_import"):
             pending_rows = st.session_state["pending_import"]["pending_rows"]
             pending_vectors = st.session_state["pending_import"].get("pending_vectors", [])
-            inserted_ids = db.insert_subtitles_batch(db_path, pending_rows)
-            get_vector_index_service().upsert_vector_rows(
-                db_path, inserted_ids, pending_vectors
-            )
+            pending_meta = st.session_state["pending_import"].get("pending_meta", [])
+
+            pending_payload = {
+                "pending_rows": pending_rows,
+                "pending_vectors": pending_vectors,
+                "pending_meta": pending_meta,
+            }
+            try:
+                _inserted_ids, vector_error = _commit_pending_import(
+                    db_path, pending_payload
+                )
+            except Exception as exc:
+                logger.exception("Clean import transaction failed: %s", exc)
+                st.error("入库失败，本次数据已全部回滚，可安全重试。")
+                return
+
             st.session_state["pending_import"] = None
+            if vector_error:
+                st.warning("字幕已入库，但向量索引更新失败，请稍后重建索引。")
+
             cached_library_stats.clear()
             if st.session_state.get("easter_egg", True):
                 st.balloons()
-            st.toast("入库成功！可在「数据库管理」检索", icon="🗄️")
+            if not vector_error:
+                st.toast("入库成功！可在「数据库管理」检索", icon="🗄️")
             time.sleep(2)
             st.rerun()
 
@@ -279,6 +320,25 @@ def _render_import_confirmation(db_path):
         if st.button("取消", width="stretch", key="cancel_import"):
             st.session_state["pending_import"] = None
             st.rerun()
+
+
+def _commit_pending_import(db_path, pending_payload, vector_service=None):
+    inserted_ids = db.insert_subtitles_with_metadata_batch(
+        db_path,
+        pending_payload.get("pending_rows", []),
+        pending_payload.get("pending_meta", []),
+    )
+    service = vector_service or get_vector_index_service()
+    try:
+        service.upsert_vector_rows(
+            db_path,
+            inserted_ids,
+            pending_payload.get("pending_vectors", []),
+        )
+    except Exception as exc:
+        logger.exception("Vector index update failed after import: %s", exc)
+        return inserted_ids, exc
+    return inserted_ids, None
 
 
 def _render_download_section():

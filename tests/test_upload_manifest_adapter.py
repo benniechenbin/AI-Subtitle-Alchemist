@@ -1,6 +1,9 @@
 import json
 
+import pytest
+
 from app.tabs.clean_import import _filter_manifest_rows
+from src.services import upload_manifest_adapter
 from src.services.upload_manifest_adapter import prepare_upload_analysis
 
 
@@ -23,6 +26,15 @@ class FakeUploadedFile:
 
     def tell(self) -> int:
         return self._position
+
+
+@pytest.fixture(autouse=True)
+def disable_live_tmdb(monkeypatch):
+    monkeypatch.setattr(
+        upload_manifest_adapter,
+        "search_tmdb_metadata",
+        lambda *_args, **_kwargs: None,
+    )
 
 
 def _manifest_file(items, name: str = "harvester_import_manifest.json"):
@@ -188,3 +200,39 @@ def test_broken_harvester_manifest_warns_and_falls_back_to_filename():
     assert result.analysis_data[0]["识别片名"] == "The Matrix"
     assert result.analysis_data[0]["年份"] == 1999
     assert result.analysis_data[0]["状态"] == "待确认"
+
+
+def test_tmdb_queries_are_deduplicated_and_metadata_stays_out_of_rows():
+    calls = []
+
+    def fake_search(title, release_year=None):
+        calls.append((title, release_year))
+        return {
+            "title": "黑客帝国",
+            "year": 1999,
+            "tmdb_id": 603,
+            "media_type": "movie",
+            "poster_path": "/matrix.jpg",
+            "raw": {
+                "id": 603,
+                "media_type": "movie",
+                "title": "黑客帝国",
+                "release_date": "1999-03-31",
+            },
+        }
+
+    result = prepare_upload_analysis(
+        [
+            FakeUploadedFile("The.Matrix.1999.srt"),
+            FakeUploadedFile("The.Matrix.1999.ass"),
+        ],
+        tmdb_search=fake_search,
+    )
+
+    assert calls == [("The Matrix", 1999)]
+    assert [row["识别片名"] for row in result.analysis_data] == [
+        "黑客帝国",
+        "黑客帝国",
+    ]
+    assert all("_raw_tmdb" not in row for row in result.analysis_data)
+    assert all(match["metadata"]["tmdb_id"] == 603 for match in result.tmdb_matches)

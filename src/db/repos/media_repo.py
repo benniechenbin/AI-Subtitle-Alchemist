@@ -62,6 +62,7 @@ def get_movies_with_meta(db_path=None) -> list[dict]:
             FROM movies_meta m
             LEFT JOIN subtitles s ON m.movie_name = s.movie_name
             GROUP BY m.movie_name
+            HAVING COUNT(s.id) > 0
             ORDER BY line_count DESC
         """)
         columns = ['movie_name', 'poster_url', 'release_year', 'highlight_status', 'line_count']
@@ -78,6 +79,10 @@ def get_movies_missing_posters(db_path=None) -> list[dict]:
             FROM movies_meta
             WHERE movie_name IS NOT NULL
               AND (poster_url IS NULL OR TRIM(poster_url) = '')
+              AND EXISTS (
+                  SELECT 1 FROM subtitles s
+                  WHERE s.movie_name = movies_meta.movie_name
+              )
             ORDER BY movie_name
         """)
         columns = ["movie_name", "release_year"]
@@ -99,6 +104,15 @@ def update_movie_poster(db_path: str, movie_name: str, poster_url: str) -> None:
 
 
 def upsert_movie_metadata(db_path: str, metadata: dict) -> None:
+    conn = get_db_connection(db_path)
+    try:
+        upsert_movie_metadata_on_connection(conn, metadata)
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def upsert_movie_metadata_on_connection(conn, metadata: dict) -> None:
     movie_name = _text_or_none(metadata.get("movie_name"))
     if not movie_name:
         return
@@ -115,9 +129,13 @@ def upsert_movie_metadata(db_path: str, metadata: dict) -> None:
         "release_year": _int_or_none(metadata.get("year")),
         "media_key": _text_or_none(metadata.get("media_key")),
         "media_type": _text_or_none(content.get("media_type") or metadata.get("media_type")),
-        "tmdb_id": _int_or_none(content.get("tmdb_id") or metadata.get("tmdb_id")),
+        "tmdb_id": _int_or_none(
+            content.get("tmdb_id") or content.get("id") or metadata.get("tmdb_id")
+        ),
         "imdb_id": _text_or_none(content.get("imdb_id") or metadata.get("imdb_id")),
-        "original_title": _text_or_none(content.get("original_title")),
+        "original_title": _text_or_none(
+            content.get("original_title") or content.get("original_name")
+        ),
         "aliases_json": _json_or_none(content.get("aliases")),
         "overview": _text_or_none(content.get("overview")),
         "tagline": _text_or_none(content.get("tagline")),
@@ -167,12 +185,7 @@ def upsert_movie_metadata(db_path: str, metadata: dict) -> None:
         f"ON CONFLICT(movie_name) DO UPDATE SET {updates}"
     )
 
-    conn = get_db_connection(db_path)
-    try:
-        conn.execute(sql, values)
-        conn.commit()
-    finally:
-        conn.close()
+    conn.execute(sql, values)
 
 
 def _text_or_none(value) -> str | None:

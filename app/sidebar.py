@@ -140,7 +140,7 @@ def _render_llm_config() -> None:
         st.session_state["llm_key"] = api_key
 
     model_presets = {
-        "DeepSeek": ["deepseek-chat", "deepseek-reasoner"],
+        "DeepSeek": ["deepseek-v4-flash", "deepseek-v4-pro"],
         "OpenAI": ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo"],
         "Google": ["gemini-2.0-flash", "gemini-1.5-pro", "gemini-1.5-flash"],
         "Local (Ollama)": ["llama3", "qwen2.5", "mistral"],

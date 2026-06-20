@@ -7,13 +7,13 @@ from src.observability.logger import logger
 
 def search_tmdb_metadata(
     movie_name: str,
-    api_key: str = None,
+    api_key: str | None = None,
     release_year: int | str | None = None,
 ) -> dict | None:
     """
     通过 TMDB API 搜索影视剧并获取最佳匹配的元数据。
     
-    :return: 包含 title, year, poster_path 的字典，如果没找到则返回 None
+    :return: 规范化的 TMDB 匹配结果，如果没有精确匹配则返回 None
     """
     effective_key = api_key or settings.env.tmdb_api_key
 
@@ -28,7 +28,7 @@ def search_tmdb_metadata(
         "query": movie_name,
         "language": "zh-CN",  # 优先返回中文海报和译名
         "page": 1,
-        "include_adult": "false" # 过滤成人内容
+        "include_adult": "false",  # 过滤成人内容
     }
 
     try:
@@ -48,6 +48,9 @@ def search_tmdb_metadata(
                     "title": title,
                     "year": _extract_result_year(selected),
                     "poster_path": selected.get("poster_path"),
+                    "tmdb_id": selected.get("id"),
+                    "media_type": selected.get("media_type"),
+                    "raw": selected,
                 }
 
             logger.warning(f"⚠️ TMDB 收录了《{movie_name}》，但未能找到有效匹配。")
@@ -63,7 +66,7 @@ def search_tmdb_metadata(
 
 def fetch_tmdb_poster(
     movie_name: str,
-    api_key: str = None,
+    api_key: str | None = None,
     release_year: int | str | None = None,
 ) -> str | None:
     """
@@ -79,20 +82,22 @@ def _select_best_result(
     results: list[dict],
     release_year: int | str | None = None,
 ) -> dict | None:
-    if not results:
+    candidates = [
+        result
+        for result in results
+        if result.get("media_type") in {"movie", "tv"}
+    ]
+    if not candidates:
         return None
 
     target_year = _normalize_year(release_year)
     if target_year is not None:
-        for result in results:
+        for result in candidates:
             if _extract_result_year(result) == target_year:
                 return result
+        return None
 
-    poster_candidates = [result for result in results if result.get("poster_path")]
-    if poster_candidates:
-        return poster_candidates[0]
-
-    return results[0]
+    return candidates[0]
 
 
 def _extract_result_year(result: dict) -> int | None:

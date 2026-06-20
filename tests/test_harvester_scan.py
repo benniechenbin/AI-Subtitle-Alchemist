@@ -7,6 +7,7 @@ import pytest
 
 from src import db
 from src.services.scan_service import scan_library
+from src.utils import calculate_file_hash
 
 
 class FakeEmbeddingModel:
@@ -297,3 +298,92 @@ def test_scan_encoded_subtitles_are_still_decoded_and_parsed(
     assert rows[0]["movie_name"] == "Encoding Movie"
     assert rows[0]["year"] == 2026
     assert rows[0]["content"] == text
+
+
+def test_scan_prefers_clean_hash_named_file_when_same_content_exists(tmp_path):
+    root = tmp_path / "duplicates"
+    original = root / "Super.no.Ura.de.Yani.Suu.Futari.2025.srt"
+    _write_srt(original, "Same subtitle")
+    raw = original.read_bytes()
+    content_hash = calculate_file_hash(raw)
+    canonical = root / f"Canonical.Movie.2025.{content_hash[:8]}.srt"
+    canonical.write_bytes(raw)
+    db_path = tmp_path / "duplicates.db"
+
+    rows = _scan_rows(root, db_path)
+
+    assert len(rows) == 1
+    conn = sqlite3.connect(db_path)
+    try:
+        stored_path = conn.execute(
+            "SELECT DISTINCT file_path FROM subtitles"
+        ).fetchone()[0]
+    finally:
+        conn.close()
+    assert stored_path == str(canonical)
+    assert original.exists()
+    assert canonical.exists()
+
+
+def test_scan_skips_old_copy_when_canonical_file_is_already_in_database(tmp_path):
+    root = tmp_path / "existing"
+    original = root / "Super.no.Ura.de.Yani.Suu.Futari.2025.srt"
+    _write_srt(original, "Same subtitle")
+    raw = original.read_bytes()
+    content_hash = calculate_file_hash(raw)
+    canonical = root / f"Canonical.Movie.2025.{content_hash[:8]}.srt"
+    canonical.write_bytes(raw)
+    db_path = tmp_path / "existing.db"
+    db.init_db(str(db_path))
+    db.insert_subtitles_batch(
+        str(db_path),
+        [
+            (
+                content_hash,
+                str(canonical),
+                "Canonical Movie",
+                2025,
+                0,
+                0,
+                0,
+                "00:00:01,000",
+                "00:00:02,000",
+                "Same subtitle",
+                None,
+                0,
+            ),
+            (
+                content_hash,
+                str(original),
+                "Super no Ura de Yani Suu Futari",
+                2025,
+                0,
+                0,
+                0,
+                "00:00:01,000",
+                "00:00:02,000",
+                "Same subtitle",
+                None,
+                0,
+            ),
+        ],
+    )
+
+    logs = list(
+        scan_library(
+            str(root),
+            FakeEmbeddingModel(),
+            "fake-model",
+            str(db_path),
+            sync_vector_index=False,
+        )
+    )
+
+    assert any("已清理重复数据库记录" in log for log, _data in logs)
+    assert any("跳过同内容旧副本" in log for log, _data in logs)
+    conn = sqlite3.connect(db_path)
+    try:
+        assert conn.execute("SELECT COUNT(*) FROM subtitles").fetchone()[0] == 1
+    finally:
+        conn.close()
+    assert original.exists()

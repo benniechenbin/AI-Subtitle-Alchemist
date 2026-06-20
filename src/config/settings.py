@@ -77,7 +77,7 @@ class UserPreferences(BaseModel):
     embedding_model: str = "moka-ai/m3e-base"
     db_path: str = Field(default_factory=lambda: str(DEFAULT_DB_PATH))
     llm_provider: str = "DeepSeek"
-    llm_model_name: str = "deepseek-chat"
+    llm_model_name: str = "deepseek-v4-flash"
     llm_base_url: str = "https://api.deepseek.com"
     harvester_api_base_url: str = "http://127.0.0.1:8000"
 
