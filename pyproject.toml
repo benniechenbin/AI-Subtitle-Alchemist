@@ -7,9 +7,11 @@ requires-python = ">=3.11"
 dependencies = [
     "chardet>=7.4.3",
     "guessit>=3.8.0",
+    "loguru>=0.7.3",
     "numpy>=2.4.6",
     "openai>=2.43.0",
     "pandas>=3.0.3",
+    "pydantic-settings>=2.14.2",
     "requests>=2.34.2",
     "scikit-learn>=1.9.0",
     "sentence-transformers>=5.6.0",
