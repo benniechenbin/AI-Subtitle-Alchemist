@@ -27,7 +27,7 @@ def init_db(db_path=None):
             c.execute(schema.SQL_CREATE_GOLDEN_QUOTES)
             c.execute(schema.SQL_CREATE_BGM_LIBRARY)
             
-            c.execute("INSERT INTO schema_migrations (version, applied_at) VALUES (1, ?)", (time.strftime("%Y-%m-%d %H:%M:%S"),))
+            c.execute("INSERT OR IGNORE OR IGNORE INTO schema_migrations (version, applied_at) VALUES (1, ?)", (time.strftime("%Y-%m-%d %H:%M:%S"),))
             conn.commit()
             current_version = 1
 
@@ -35,7 +35,7 @@ def init_db(db_path=None):
         if current_version < 2:
             logger.info("🚀 正在升级数据库至 V2 (资产模型升级)...")
             _migration_v2(conn)
-            c.execute("INSERT INTO schema_migrations (version, applied_at) VALUES (2, ?)", (time.strftime("%Y-%m-%d %H:%M:%S"),))
+            c.execute("INSERT OR IGNORE INTO schema_migrations (version, applied_at) VALUES (2, ?)", (time.strftime("%Y-%m-%d %H:%M:%S"),))
             conn.commit()
             current_version = 2
             logger.info("✅ 数据库已成功升级至 V2")
@@ -44,7 +44,7 @@ def init_db(db_path=None):
         if current_version < 3:
             logger.info("🧭 正在升级数据库至 V3 (向量索引注册表)...")
             _migration_v3(conn)
-            c.execute("INSERT INTO schema_migrations (version, applied_at) VALUES (3, ?)", (time.strftime("%Y-%m-%d %H:%M:%S"),))
+            c.execute("INSERT OR IGNORE INTO schema_migrations (version, applied_at) VALUES (3, ?)", (time.strftime("%Y-%m-%d %H:%M:%S"),))
             conn.commit()
             current_version = 3
             logger.info("✅ 数据库已成功升级至 V3")
@@ -53,7 +53,7 @@ def init_db(db_path=None):
         if current_version < 4:
             logger.info("🧭 正在升级数据库至 V4 (sqlite-vec 单份向量存储)...")
             _migration_v4(conn)
-            c.execute("INSERT INTO schema_migrations (version, applied_at) VALUES (4, ?)", (time.strftime("%Y-%m-%d %H:%M:%S"),))
+            c.execute("INSERT OR IGNORE INTO schema_migrations (version, applied_at) VALUES (4, ?)", (time.strftime("%Y-%m-%d %H:%M:%S"),))
             conn.commit()
             current_version = 4
             logger.info("✅ 数据库已成功升级至 V4")
@@ -62,7 +62,7 @@ def init_db(db_path=None):
         if current_version < 5:
             logger.info("🎞️ 正在升级数据库至 V5 (TMDB 富元数据)...")
             _migration_v5(conn)
-            c.execute("INSERT INTO schema_migrations (version, applied_at) VALUES (5, ?)", (time.strftime("%Y-%m-%d %H:%M:%S"),))
+            c.execute("INSERT OR IGNORE INTO schema_migrations (version, applied_at) VALUES (5, ?)", (time.strftime("%Y-%m-%d %H:%M:%S"),))
             conn.commit()
             logger.info("✅ 数据库已成功升级至 V5")
     finally:
