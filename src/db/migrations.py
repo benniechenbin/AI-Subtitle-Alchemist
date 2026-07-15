@@ -27,7 +27,7 @@ def init_db(db_path=None):
             c.execute(schema.SQL_CREATE_GOLDEN_QUOTES)
             c.execute(schema.SQL_CREATE_BGM_LIBRARY)
             
-            c.execute("INSERT OR IGNORE OR IGNORE INTO schema_migrations (version, applied_at) VALUES (1, ?)", (time.strftime("%Y-%m-%d %H:%M:%S"),))
+            c.execute("INSERT OR IGNORE INTO schema_migrations (version, applied_at) VALUES (1, ?)", (time.strftime("%Y-%m-%d %H:%M:%S"),))
             conn.commit()
             current_version = 1
 
