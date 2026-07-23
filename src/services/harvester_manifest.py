@@ -70,7 +70,9 @@ def load_harvester_manifest(input_dir: str | Path) -> dict[str, dict]:
             index[abs_key] = enriched_item
 
     if index:
-        logger.info(f"Loaded harvester manifest: {manifest_path} ({len(index)} path keys)")
+        logger.info(
+            f"Loaded harvester manifest: {manifest_path} ({len(index)} path keys)"
+        )
     return index
 
 

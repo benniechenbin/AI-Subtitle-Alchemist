@@ -1,5 +1,6 @@
 from src import db
 
+
 def test_db_public_api_exports():
     """验证 db 模块的公开 API 导出是否完整，防止重构导致外部调用中断。"""
     required = [
@@ -9,7 +10,6 @@ def test_db_public_api_exports():
         "insert_subtitles_with_metadata_batch",
         "get_file_paths_by_hash",
         "get_file_hash_path_index",
-        "fetch_vectors_for_search",
         "get_all_movies",
         "get_library_stats",
         "get_movies_missing_posters",

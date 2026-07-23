@@ -39,7 +39,9 @@ def _write_manifest(root: Path, items: list[dict]) -> None:
 
 def _scan_rows(root: Path, db_path: Path) -> list[sqlite3.Row]:
     db.init_db(str(db_path))
-    logs = list(scan_library(str(root), FakeEmbeddingModel(), "fake-model", str(db_path)))
+    logs = list(
+        scan_library(str(root), FakeEmbeddingModel(), "fake-model", str(db_path))
+    )
     assert logs[-1][0] == "DONE"
 
     conn = sqlite3.connect(db_path)
@@ -286,9 +288,7 @@ def test_scan_manifest_accepts_windows_style_subtitle_paths(tmp_path):
         ("gb18030", "𠮷野家字幕"),
     ],
 )
-def test_scan_encoded_subtitles_are_still_decoded_and_parsed(
-    tmp_path, encoding, text
-):
+def test_scan_encoded_subtitles_are_still_decoded_and_parsed(tmp_path, encoding, text):
     root = tmp_path / encoding
     _write_srt(root / f"Encoding.Movie.2026.{encoding}.srt", text, encoding=encoding)
 

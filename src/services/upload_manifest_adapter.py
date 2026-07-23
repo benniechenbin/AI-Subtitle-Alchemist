@@ -121,7 +121,9 @@ def _search_tmdb_queries(
                 results[key] = future.result()
             except Exception as exc:
                 results[key] = None
-                warnings.append(f"TMDB 匹配失败，已保留文件名识别结果: {key[0]} ({exc})")
+                warnings.append(
+                    f"TMDB 匹配失败，已保留文件名识别结果: {key[0]} ({exc})"
+                )
 
     return results, warnings
 
@@ -149,8 +151,10 @@ def has_harvester_manifest(uploaded_files: list[Any]) -> bool:
     return bool(manifest_files)
 
 
-def _load_first_manifest_items(manifest_files: list[Any]) -> tuple[list[dict], list[str]]:
-    warnings = []
+def _load_first_manifest_items(
+    manifest_files: list[Any],
+) -> tuple[list[dict], list[str]]:
+    warnings: list[str] = []
     for manifest_file in manifest_files:
         try:
             payload = _read_uploaded_bytes(manifest_file).decode("utf-8")

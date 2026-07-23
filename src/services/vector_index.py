@@ -38,46 +38,42 @@ class VectorSearchHit:
     score: float
 
 
-
-
-
 class VectorIndexBackend(Protocol):
     name: str
 
-    def ensure_index(self, db_path: str, embedding_model: str, embedding_dim: int) -> None:
-        ...
+    def ensure_index(
+        self, db_path: str | None, embedding_model: str, embedding_dim: int
+    ) -> None: ...
 
-    def upsert(self, db_path: str, items: list[VectorIndexItem]) -> None:
-        ...
+    def upsert(self, db_path: str | None, items: list[VectorIndexItem]) -> None: ...
 
-    def delete(self, db_path: str, subtitle_ids: list[int]) -> None:
-        ...
+    def delete(self, db_path: str | None, subtitle_ids: list[int]) -> None: ...
 
     def search(
         self,
-        db_path: str,
+        db_path: str | None,
         query_vector: np.ndarray,
         embedding_model: str | None,
         embedding_dim: int,
         top_k: int,
         target_movie: str | None = None,
-    ) -> list[VectorSearchHit]:
-        ...
+    ) -> list[VectorSearchHit]: ...
 
-    def rebuild(self, db_path: str, items: list[VectorIndexItem]) -> None:
-        ...
+    def rebuild(self, db_path: str | None, items: list[VectorIndexItem]) -> None: ...
 
-    def clear(self, db_path: str, embedding_model: str | None = None) -> None:
-        ...
+    def clear(
+        self, db_path: str | None, embedding_model: str | None = None
+    ) -> None: ...
 
-    def stats(self, db_path: str) -> dict:
-        ...
+    def stats(self, db_path: str | None) -> dict: ...
 
 
 class SqliteVecBackend:
     name = "sqlite_vec"
 
-    def ensure_index(self, db_path: str, embedding_model: str, embedding_dim: int) -> None:
+    def ensure_index(
+        self, db_path: str | None, embedding_model: str, embedding_dim: int
+    ) -> None:
         conn = db.get_db_connection(db_path)
         try:
             self._ensure_index_on_connection(conn, embedding_model, embedding_dim)
@@ -85,7 +81,7 @@ class SqliteVecBackend:
         finally:
             conn.close()
 
-    def upsert(self, db_path: str, items: list[VectorIndexItem]) -> None:
+    def upsert(self, db_path: str | None, items: list[VectorIndexItem]) -> None:
         for group_key, group_items in _group_items(items).items():
             embedding_model, embedding_dim = group_key
             conn = db.get_db_connection(db_path)
@@ -106,7 +102,7 @@ class SqliteVecBackend:
             finally:
                 conn.close()
 
-    def delete(self, db_path: str, subtitle_ids: list[int]) -> None:
+    def delete(self, db_path: str | None, subtitle_ids: list[int]) -> None:
         if not subtitle_ids:
             return
         conn = db.get_db_connection(db_path)
@@ -125,7 +121,7 @@ class SqliteVecBackend:
 
     def search(
         self,
-        db_path: str,
+        db_path: str | None,
         query_vector: np.ndarray,
         embedding_model: str | None,
         embedding_dim: int,
@@ -162,7 +158,7 @@ class SqliteVecBackend:
             for row in rows
         ]
 
-    def rebuild(self, db_path: str, items: list[VectorIndexItem]) -> None:
+    def rebuild(self, db_path: str | None, items: list[VectorIndexItem]) -> None:
         for group_key, group_items in _group_items(items).items():
             embedding_model, embedding_dim = group_key
             conn = db.get_db_connection(db_path)
@@ -180,7 +176,7 @@ class SqliteVecBackend:
             finally:
                 conn.close()
 
-    def clear(self, db_path: str, embedding_model: str | None = None) -> None:
+    def clear(self, db_path: str | None, embedding_model: str | None = None) -> None:
         conn = db.get_db_connection(db_path)
         try:
             self._load_extension(conn)
@@ -192,7 +188,7 @@ class SqliteVecBackend:
         finally:
             conn.close()
 
-    def stats(self, db_path: str) -> dict:
+    def stats(self, db_path: str | None) -> dict:
         conn = db.get_db_connection(db_path)
         try:
             self._load_extension(conn)
@@ -251,9 +247,6 @@ class SqliteVecBackend:
             raise VectorIndexUnavailable(f"sqlite-vec failed to load: {exc}") from exc
 
 
-
-
-
 class VectorIndexService:
     def __init__(
         self,
@@ -264,22 +257,24 @@ class VectorIndexService:
 
     def upsert_vector_rows(
         self,
-        db_path: str,
+        db_path: str | None,
         subtitle_ids: list[int],
         vector_rows: list[tuple],
     ) -> None:
         items = _items_from_vector_rows(subtitle_ids, vector_rows)
         self.upsert(db_path, items)
 
-    def upsert(self, db_path: str, items: list[VectorIndexItem]) -> None:
+    def upsert(self, db_path: str | None, items: list[VectorIndexItem]) -> None:
         if not items:
             return
         try:
             self.primary_backend.upsert(db_path, items)
         except VectorIndexUnavailable as exc:
-            logger.warning("Vector index unavailable; vector rows were not persisted. %s", exc)
+            logger.warning(
+                "Vector index unavailable; vector rows were not persisted. %s", exc
+            )
 
-    def delete(self, db_path: str, subtitle_ids: list[int]) -> None:
+    def delete(self, db_path: str | None, subtitle_ids: list[int]) -> None:
         if not subtitle_ids:
             return
         try:
@@ -289,7 +284,7 @@ class VectorIndexService:
 
     def rebuild(
         self,
-        db_path: str,
+        db_path: str | None,
         embedding_model: str | None = None,
         model=None,
         batch_size: int = 10000,
@@ -300,7 +295,9 @@ class VectorIndexService:
             return False
         model_name = embedding_model or getattr(settings.prefs, "embedding_model", "")
         if not model_name:
-            logger.warning("Vector index rebuild skipped: embedding model name is required.")
+            logger.warning(
+                "Vector index rebuild skipped: embedding model name is required."
+            )
             return False
         try:
             self.primary_backend.clear(db_path, embedding_model=embedding_model)
@@ -331,7 +328,7 @@ class VectorIndexService:
         *,
         query: str,
         model,
-        db_path: str,
+        db_path: str | None,
         embedding_model_name: str | None = None,
         final_k: int = 20,
         fetch_ratio: int = 4,
@@ -363,7 +360,7 @@ class VectorIndexService:
     def _search_hits(
         self,
         *,
-        db_path: str,
+        db_path: str | None,
         query_vector: np.ndarray,
         embedding_model_name: str | None,
         top_k: int,
@@ -393,9 +390,6 @@ def get_vector_index_service() -> VectorIndexService:
     return _default_service
 
 
-
-
-
 def _items_from_vector_rows(
     subtitle_ids: list[int],
     vector_rows: list[tuple],
@@ -419,7 +413,9 @@ def _items_from_vector_rows(
     return items
 
 
-def _items_from_text_rows(rows: list, *, model, embedding_model: str) -> list[VectorIndexItem]:
+def _items_from_text_rows(
+    rows: list, *, model, embedding_model: str
+) -> list[VectorIndexItem]:
     texts = [row[1] for row in rows]
     vectors = model.encode(
         texts,
@@ -444,13 +440,13 @@ def _items_from_text_rows(rows: list, *, model, embedding_model: str) -> list[Ve
     ]
 
 
-
-
-def _rows_for_hits(db_path: str, hits: list[VectorSearchHit]) -> list:
+def _rows_for_hits(db_path: str | None, hits: list[VectorSearchHit]) -> list:
     return db.fetch_subtitles_by_ids(db_path, [hit.subtitle_id for hit in hits])
 
 
-def _candidate_rows(rows: list, hits: list[VectorSearchHit], *, target_movie: str | None) -> list[dict]:
+def _candidate_rows(
+    rows: list, hits: list[VectorSearchHit], *, target_movie: str | None
+) -> list[dict]:
     hit_by_id = {hit.subtitle_id: hit for hit in hits}
     candidates = []
     for row in rows:
@@ -477,12 +473,12 @@ def _candidate_rows(rows: list, hits: list[VectorSearchHit], *, target_movie: st
 def _dedupe_results(
     raw_results: list[dict],
     *,
-    db_path: str,
+    db_path: str | None,
     final_k: int,
     allow_duplicates: bool,
 ) -> list[dict]:
-    unique_results = []
-    seen_contents = []
+    unique_results: list[dict] = []
+    seen_contents: list[str] = []
 
     for res in raw_results:
         if not allow_duplicates:
@@ -521,7 +517,9 @@ def _dedupe_results(
     return unique_results
 
 
-def _group_items(items: list[VectorIndexItem]) -> dict[tuple[str, int], list[VectorIndexItem]]:
+def _group_items(
+    items: list[VectorIndexItem],
+) -> dict[tuple[str, int], list[VectorIndexItem]]:
     groups: dict[tuple[str, int], list[VectorIndexItem]] = {}
     for item in items:
         if item.embedding.size == 0:
@@ -615,11 +613,12 @@ def _embedding_from_blob(value) -> np.ndarray | None:
         return np.frombuffer(value, dtype=np.float32)
     except Exception:
         try:
-            parsed = json.loads(value.decode("utf-8") if isinstance(value, bytes) else str(value))
+            parsed = json.loads(
+                value.decode("utf-8") if isinstance(value, bytes) else str(value)
+            )
             return _as_float32(parsed)
         except Exception:
             return None
-
 
 
 def _score_from_distance(distance: float) -> float:

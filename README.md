@@ -18,7 +18,7 @@
 **不仅仅是字幕搜索，更是你的本地视频灵感库。**
 
 > ✨ Built for video creators, editors, and writers who want to *think with subtitles*.
-> 
+>
 > ✨ 为 **混剪创作者 / 编剧 / 纪录片作者** 打造的本地字幕语义引擎。
 ![Demo Image](assets/demo.png)
 
@@ -182,4 +182,3 @@ MIT License
 ---
 
 <div align="center">Made with ❤️ by YourName</div>
-

@@ -60,7 +60,6 @@ def _deduplicate_metadata(metadata_items):
     return by_movie_name.values()
 
 
-
 def fetch_subtitles_by_ids(db_path, subtitle_ids):
     if not subtitle_ids:
         return []
@@ -77,10 +76,11 @@ def fetch_subtitles_by_ids(db_path, subtitle_ids):
             tuple(subtitle_ids),
         )
         rows_by_id = {row[0]: row for row in cursor.fetchall()}
-        return [rows_by_id[item_id] for item_id in subtitle_ids if item_id in rows_by_id]
+        return [
+            rows_by_id[item_id] for item_id in subtitle_ids if item_id in rows_by_id
+        ]
     finally:
         conn.close()
-
 
 
 def iter_subtitles_for_vector_rebuild(db_path, batch_size=10000):
@@ -111,6 +111,7 @@ def iter_subtitles_for_vector_rebuild(db_path, batch_size=10000):
         yield rows
         last_id = int(rows[-1][0])
 
+
 def update_subtitle_embedding_metadata_batch(db_path, updates):
     if not updates:
         return
@@ -129,8 +130,10 @@ def update_subtitle_embedding_metadata_batch(db_path, updates):
     finally:
         conn.close()
 
+
 def get_context_by_id(db_path, center_id, movie_name, window=1):
     from src.observability.logger import logger
+
     try:
         conn = get_db_connection(db_path)
         cursor = conn.cursor()
@@ -146,6 +149,7 @@ def get_context_by_id(db_path, center_id, movie_name, window=1):
         return ""
     finally:
         conn.close()
+
 
 def search_keyword(db_path, keyword):
     conn = get_db_connection(db_path)
@@ -169,6 +173,7 @@ def search_keyword(db_path, keyword):
     finally:
         conn.close()
 
+
 def check_file_exists(db_path, file_hash):
     conn = get_db_connection(db_path)
     try:
@@ -187,11 +192,7 @@ def get_file_paths_by_hash(db_path, file_hash):
             "SELECT DISTINCT file_path FROM subtitles WHERE file_hash = ?",
             (file_hash,),
         )
-        return {
-            os.path.normpath(row[0])
-            for row in c.fetchall()
-            if row[0]
-        }
+        return {os.path.normpath(row[0]) for row in c.fetchall() if row[0]}
     finally:
         conn.close()
 
@@ -214,6 +215,7 @@ def get_file_hash_path_index(db_path):
     finally:
         conn.close()
 
+
 def get_all_file_paths(db_path):
     conn = get_db_connection(db_path)
     try:
@@ -222,6 +224,7 @@ def get_all_file_paths(db_path):
         return {os.path.normpath(row[0]) for row in c.fetchall()}
     finally:
         conn.close()
+
 
 def get_subtitle_ids_by_paths(db_path, paths):
     if not paths:
@@ -238,6 +241,7 @@ def get_subtitle_ids_by_paths(db_path, paths):
         return [row[0] for row in c.fetchall()]
     finally:
         conn.close()
+
 
 def delete_records_by_path(db_path, paths):
     if not paths:

@@ -3,10 +3,12 @@ import sqlite3
 from src.config import settings
 from src.config.settings import DEFAULT_DB_PATH, ensure_data_dir
 
+
 def _resolve_db_path(db_path=None) -> str:
     if db_path:
         return str(db_path)
     return settings.prefs.db_path or str(DEFAULT_DB_PATH)
+
 
 def get_db_connection(db_path=None):
     target_path = _resolve_db_path(db_path)

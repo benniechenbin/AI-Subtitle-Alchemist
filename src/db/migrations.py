@@ -3,13 +3,16 @@ from src.observability.logger import logger
 from src.db.base import get_db_connection
 from . import schema
 
+
 def init_db(db_path=None):
     conn = get_db_connection(db_path)
     try:
         c = conn.cursor()
-        
+
         # 0. 建立迁移版本控制表
-        c.execute("CREATE TABLE IF NOT EXISTS schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT)")
+        c.execute(
+            "CREATE TABLE IF NOT EXISTS schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT)"
+        )
         conn.commit()
 
         # 检查当前版本
@@ -26,8 +29,11 @@ def init_db(db_path=None):
             c.execute(schema.SQL_CREATE_MOVIES_META)
             c.execute(schema.SQL_CREATE_GOLDEN_QUOTES)
             c.execute(schema.SQL_CREATE_BGM_LIBRARY)
-            
-            c.execute("INSERT OR IGNORE INTO schema_migrations (version, applied_at) VALUES (1, ?)", (time.strftime("%Y-%m-%d %H:%M:%S"),))
+
+            c.execute(
+                "INSERT OR IGNORE INTO schema_migrations (version, applied_at) VALUES (1, ?)",
+                (time.strftime("%Y-%m-%d %H:%M:%S"),),
+            )
             conn.commit()
             current_version = 1
 
@@ -35,7 +41,10 @@ def init_db(db_path=None):
         if current_version < 2:
             logger.info("🚀 正在升级数据库至 V2 (资产模型升级)...")
             _migration_v2(conn)
-            c.execute("INSERT OR IGNORE INTO schema_migrations (version, applied_at) VALUES (2, ?)", (time.strftime("%Y-%m-%d %H:%M:%S"),))
+            c.execute(
+                "INSERT OR IGNORE INTO schema_migrations (version, applied_at) VALUES (2, ?)",
+                (time.strftime("%Y-%m-%d %H:%M:%S"),),
+            )
             conn.commit()
             current_version = 2
             logger.info("✅ 数据库已成功升级至 V2")
@@ -44,7 +53,10 @@ def init_db(db_path=None):
         if current_version < 3:
             logger.info("🧭 正在升级数据库至 V3 (向量索引注册表)...")
             _migration_v3(conn)
-            c.execute("INSERT OR IGNORE INTO schema_migrations (version, applied_at) VALUES (3, ?)", (time.strftime("%Y-%m-%d %H:%M:%S"),))
+            c.execute(
+                "INSERT OR IGNORE INTO schema_migrations (version, applied_at) VALUES (3, ?)",
+                (time.strftime("%Y-%m-%d %H:%M:%S"),),
+            )
             conn.commit()
             current_version = 3
             logger.info("✅ 数据库已成功升级至 V3")
@@ -53,7 +65,10 @@ def init_db(db_path=None):
         if current_version < 4:
             logger.info("🧭 正在升级数据库至 V4 (sqlite-vec 单份向量存储)...")
             _migration_v4(conn)
-            c.execute("INSERT OR IGNORE INTO schema_migrations (version, applied_at) VALUES (4, ?)", (time.strftime("%Y-%m-%d %H:%M:%S"),))
+            c.execute(
+                "INSERT OR IGNORE INTO schema_migrations (version, applied_at) VALUES (4, ?)",
+                (time.strftime("%Y-%m-%d %H:%M:%S"),),
+            )
             conn.commit()
             current_version = 4
             logger.info("✅ 数据库已成功升级至 V4")
@@ -62,16 +77,20 @@ def init_db(db_path=None):
         if current_version < 5:
             logger.info("🎞️ 正在升级数据库至 V5 (TMDB 富元数据)...")
             _migration_v5(conn)
-            c.execute("INSERT OR IGNORE INTO schema_migrations (version, applied_at) VALUES (5, ?)", (time.strftime("%Y-%m-%d %H:%M:%S"),))
+            c.execute(
+                "INSERT OR IGNORE INTO schema_migrations (version, applied_at) VALUES (5, ?)",
+                (time.strftime("%Y-%m-%d %H:%M:%S"),),
+            )
             conn.commit()
             logger.info("✅ 数据库已成功升级至 V5")
     finally:
         conn.close()
 
+
 def _migration_v2(conn):
     """V2 迁移：新增统一标签系统，升级 BGM 模型"""
     c = conn.cursor()
-    
+
     # 1. 新增标签系统相关表
     c.execute(schema.SQL_CREATE_TAGS)
     c.execute(schema.SQL_CREATE_SUBTITLE_TAGS)
@@ -87,18 +106,20 @@ def _migration_v2(conn):
         ("user_verified", "INTEGER DEFAULT 0"),
         ("raw_metadata", "TEXT"),
         ("created_at", "TEXT"),
-        ("updated_at", "TEXT")
+        ("updated_at", "TEXT"),
     ]
-    
+
     c.execute("PRAGMA table_info(bgm_library)")
     existing_cols = [row[1] for row in c.fetchall()]
-    
+
     for col_name, col_type in columns_to_add:
         if col_name not in existing_cols:
             c.execute(f"ALTER TABLE bgm_library ADD COLUMN {col_name} {col_type}")
 
     # 3. 预置基础标签字典
-    c.executemany("INSERT OR IGNORE INTO tags (name, type) VALUES (?, ?)", schema.DEFAULT_TAGS)
+    c.executemany(
+        "INSERT OR IGNORE INTO tags (name, type) VALUES (?, ?)", schema.DEFAULT_TAGS
+    )
 
 
 def _migration_v3(conn):

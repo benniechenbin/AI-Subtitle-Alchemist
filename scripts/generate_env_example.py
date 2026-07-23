@@ -18,9 +18,13 @@ def _annotation_contains_secret(node: ast.AST | None) -> bool:
     if isinstance(node, ast.Attribute):
         return node.attr == "SecretStr"
     if isinstance(node, ast.BinOp) and isinstance(node.op, ast.BitOr):
-        return _annotation_contains_secret(node.left) or _annotation_contains_secret(node.right)
+        return _annotation_contains_secret(node.left) or _annotation_contains_secret(
+            node.right
+        )
     if isinstance(node, ast.Subscript):
-        return _annotation_contains_secret(node.value) or _annotation_contains_secret(node.slice)
+        return _annotation_contains_secret(node.value) or _annotation_contains_secret(
+            node.slice
+        )
     if isinstance(node, ast.Tuple | ast.List):
         return any(_annotation_contains_secret(item) for item in node.elts)
     return False
@@ -151,7 +155,9 @@ def main(argv: list[str] | None = None) -> int:
     content = build_env_example(args.settings_file)
 
     if args.check:
-        current = args.output.read_text(encoding="utf-8") if args.output.exists() else ""
+        current = (
+            args.output.read_text(encoding="utf-8") if args.output.exists() else ""
+        )
         if current == content:
             return 0
         print(f"{args.output} is out of date. Run `make env-example`.", file=sys.stderr)

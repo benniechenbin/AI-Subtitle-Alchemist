@@ -234,8 +234,7 @@ def render_harvester_import_tab(ctx: dict) -> None:
 
     if st.button("导入到本地字幕库", type="primary"):
         manifest_paths = [
-            str(rows[labels.index(label)]["manifest_path"])
-            for label in selected_labels
+            str(rows[labels.index(label)]["manifest_path"]) for label in selected_labels
         ]
         if not manifest_paths:
             st.error("请至少选择一个 manifest。")
@@ -329,7 +328,9 @@ def _render_candidate_editor(client: HarvesterApiClient) -> None:
             "keep": st.column_config.CheckboxColumn("保留"),
             "priority": st.column_config.NumberColumn("优先级", step=1),
             "note": st.column_config.TextColumn("备注"),
-            "tmdb_metadata": st.column_config.TextColumn("TMDB metadata", disabled=True),
+            "tmdb_metadata": st.column_config.TextColumn(
+                "TMDB metadata", disabled=True
+            ),
         },
     )
 

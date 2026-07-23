@@ -5,14 +5,18 @@ from pathlib import Path
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+
 # =====================================================================
 # 轨 1：系统绝对路径常量（由代码动态计算，绝不写入 .env）
 # =====================================================================
-def find_project_root(current_path: Path, markers: tuple = ("pyproject.toml", "requirements.txt", ".git")) -> Path:
+def find_project_root(
+    current_path: Path, markers: tuple = ("pyproject.toml", "requirements.txt", ".git")
+) -> Path:
     for parent in current_path.parents:
         if any((parent / marker).exists() for marker in markers):
             return parent
     return current_path.parent
+
 
 # 替换掉原来的写死层级的代码：
 PROJECT_ROOT = find_project_root(Path(__file__).resolve())

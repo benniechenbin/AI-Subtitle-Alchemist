@@ -28,7 +28,9 @@ def analyze_filenames(file_names: list[str]) -> list[dict]:
                 "年份": info.get("year", 0),
                 "season_num": s_num,
                 "episode_num": e_num,
-                "剧集": f"S{str(s_num).zfill(2)}E{str(e_num).zfill(2)}" if e_num else "",
+                "剧集": f"S{str(s_num).zfill(2)}E{str(e_num).zfill(2)}"
+                if e_num
+                else "",
                 "状态": "待确认",
             }
         )

@@ -34,7 +34,9 @@ def render_script_writer_tab(ctx: dict) -> None:
         "风格", ["情感混剪 (遗憾/治愈)", "燃向踩点 (动作/励志)", "预告片 (悬疑/惊悚)"]
     )
 
-    prompt = st.text_area("📝 导演指令 (Prompt)", value=DEFAULT_DIRECTOR_PROMPT, height=200)
+    prompt = st.text_area(
+        "📝 导演指令 (Prompt)", value=DEFAULT_DIRECTOR_PROMPT, height=200
+    )
 
     col1, _col2 = st.columns([1, 1])
     with col1:

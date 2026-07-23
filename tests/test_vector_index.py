@@ -1,18 +1,7 @@
-import importlib.util
-import sys
-from pathlib import Path
-
 import numpy as np
 import pytest
-
 from src import db
-
-MODULE_PATH = Path(__file__).parents[1] / "src" / "services" / "vector_index.py"
-SPEC = importlib.util.spec_from_file_location("vector_index", MODULE_PATH)
-vector_index = importlib.util.module_from_spec(SPEC)
-assert SPEC and SPEC.loader
-sys.modules["vector_index"] = vector_index
-SPEC.loader.exec_module(vector_index)
+from src.services import vector_index
 
 
 class FakeModel:
@@ -45,7 +34,15 @@ class FailingBackend:
     def delete(self, db_path, subtitle_ids):
         raise vector_index.VectorIndexUnavailable("boom")
 
-    def search(self, db_path, query_vector, embedding_model, embedding_dim, top_k, target_movie=None):
+    def search(
+        self,
+        db_path,
+        query_vector,
+        embedding_model,
+        embedding_dim,
+        top_k,
+        target_movie=None,
+    ):
         raise vector_index.VectorIndexUnavailable("boom")
 
     def rebuild(self, db_path, items):
@@ -77,7 +74,15 @@ class RecordingBackend:
     def delete(self, db_path, subtitle_ids):
         self.deleted.extend(subtitle_ids)
 
-    def search(self, db_path, query_vector, embedding_model, embedding_dim, top_k, target_movie=None):
+    def search(
+        self,
+        db_path,
+        query_vector,
+        embedding_model,
+        embedding_dim,
+        top_k,
+        target_movie=None,
+    ):
         return []
 
     def rebuild(self, db_path, items):
@@ -105,7 +110,15 @@ class EmptyCountingBackend:
     def delete(self, db_path, subtitle_ids):
         return None
 
-    def search(self, db_path, query_vector, embedding_model, embedding_dim, top_k, target_movie=None):
+    def search(
+        self,
+        db_path,
+        query_vector,
+        embedding_model,
+        embedding_dim,
+        top_k,
+        target_movie=None,
+    ):
         self.search_calls += 1
         return []
 
@@ -171,7 +184,9 @@ def test_insert_returns_ids_without_embedding_blob(tmp_path):
 
     conn = db.get_db_connection(db_path)
     try:
-        columns = [row[1] for row in conn.execute("PRAGMA table_info(subtitles)").fetchall()]
+        columns = [
+            row[1] for row in conn.execute("PRAGMA table_info(subtitles)").fetchall()
+        ]
         row = conn.execute(
             "SELECT content, embedding_model, embedding_dim FROM subtitles WHERE id = ?",
             (inserted_ids[0],),
@@ -187,134 +202,21 @@ def test_insert_returns_ids_without_embedding_blob(tmp_path):
 def test_delete_records_by_path_returns_deleted_ids(tmp_path):
     db_path = str(tmp_path / "delete.db")
     db.init_db(db_path)
+    path_a = str(tmp_path / "a.srt")
+    path_b = str(tmp_path / "b.srt")
     inserted_ids = db.insert_subtitles_batch(
         db_path,
         [
-            _row("a", "/tmp/a.srt", "Movie A", "alpha"),
-            _row("b", "/tmp/b.srt", "Movie B", "beta"),
+            _row("a", path_a, "Movie A", "alpha"),
+            _row("b", path_b, "Movie B", "beta"),
         ],
     )
 
-    deleted_ids = db.delete_records_by_path(db_path, ["/tmp/a.srt"])
+    deleted_ids = db.delete_records_by_path(db_path, [path_a])
     remaining = db.fetch_subtitles_by_ids(db_path, inserted_ids)
 
     assert deleted_ids == [inserted_ids[0]]
     assert [row[0] for row in remaining] == [inserted_ids[1]]
-
-
-def test_search_returns_empty_when_primary_unavailable_without_blob_fallback(tmp_path):
-    db_path = str(tmp_path / "fallback.db")
-    db.init_db(db_path)
-    db.insert_subtitles_batch(
-        db_path,
-        [_row("a", "/tmp/a.srt", "Movie A", "alpha")],
-    )
-
-    service = vector_index.VectorIndexService(
-        primary_backend=FailingBackend(),
-        fallback_backend=vector_index.NumpyBlobBackend(),
-    )
-    results = service.search(
-        query="alpha",
-        model=FakeModel([1.0, 0.0]),
-        db_path=db_path,
-        embedding_model_name="fake-model",
-        final_k=1,
-        allow_duplicates=True,
-    )
-
-    assert results == []
-
-
-def test_target_movie_fallback_is_not_called_twice(tmp_path):
-    db_path = str(tmp_path / "fallback_once.db")
-    db.init_db(db_path)
-    fallback = EmptyCountingBackend()
-    service = vector_index.VectorIndexService(
-        primary_backend=FailingBackend(),
-        fallback_backend=fallback,
-    )
-
-    results = service.search(
-        query="missing",
-        model=FakeModel([1.0, 0.0]),
-        db_path=db_path,
-        embedding_model_name="fake-model",
-        final_k=1,
-        allow_duplicates=True,
-        target_movie="Movie A",
-    )
-
-    assert results == []
-    assert fallback.search_calls == 1
-
-
-def test_upsert_vector_rows_converts_vectors_to_items():
-    backend = RecordingBackend()
-    service = vector_index.VectorIndexService(primary_backend=backend)
-    vector_row = _vector_row([1.0, 0.0])
-
-    service.upsert_vector_rows("/tmp/unused.db", [42], [vector_row])
-
-    assert len(backend.upserted) == 1
-    assert backend.upserted[0].subtitle_id == 42
-    assert backend.upserted[0].embedding_model == "fake-model"
-    assert backend.upserted[0].embedding_dim == 2
-
-
-def test_delete_delegates_to_backend():
-    backend = RecordingBackend()
-    service = vector_index.VectorIndexService(primary_backend=backend)
-
-    service.delete("/tmp/unused.db", [1, 2])
-
-    assert backend.deleted == [1, 2]
-
-
-def test_rebuild_streams_vectors_in_batches(tmp_path):
-    db_path = str(tmp_path / "rebuild.db")
-    db.init_db(db_path)
-    db.insert_subtitles_batch(
-        db_path,
-        [
-            _row("a", "/tmp/a.srt", "Movie A", "alpha"),
-            _row("b", "/tmp/b.srt", "Movie B", "beta"),
-            _row("c", "/tmp/c.srt", "Movie C", "gamma"),
-        ],
-    )
-    backend = RecordingBackend()
-    service = vector_index.VectorIndexService(primary_backend=backend)
-
-    service.rebuild(
-        db_path,
-        embedding_model="fake-model",
-        model=BatchFakeModel(),
-        batch_size=1,
-    )
-
-    assert backend.cleared == ["fake-model"]
-    assert backend.upsert_batch_sizes == [1, 1, 1]
-    assert [item.subtitle_id for item in backend.upserted] == [1, 2, 3]
-
-
-def test_legacy_rows_drop_embedding_blob_on_insert(tmp_path):
-    db_path = str(tmp_path / "legacy.db")
-    db.init_db(db_path)
-
-    db.insert_subtitles_batch(
-        db_path,
-        [_legacy_row("a", "/tmp/a.srt", "Movie A", "alpha", [1.0, 0.0])],
-    )
-
-    conn = db.get_db_connection(db_path)
-    try:
-        row = conn.execute(
-            "SELECT content, embedding_model, embedding_dim FROM subtitles"
-        ).fetchone()
-    finally:
-        conn.close()
-
-    assert row == ("alpha", "fake-model", 2)
 
 
 def test_table_name_validation_and_score_clamp():

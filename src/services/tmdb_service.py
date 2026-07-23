@@ -12,7 +12,7 @@ def search_tmdb_metadata(
 ) -> dict | None:
     """
     通过 TMDB API 搜索影视剧并获取最佳匹配的元数据。
-    
+
     :return: 规范化的 TMDB 匹配结果，如果没有精确匹配则返回 None
     """
     effective_key = api_key or settings.env.tmdb_api_key
@@ -43,7 +43,9 @@ def search_tmdb_metadata(
             if selected:
                 title = selected.get("title") or selected.get("name")
                 if not title:
-                    title = selected.get("original_title") or selected.get("original_name")
+                    title = selected.get("original_title") or selected.get(
+                        "original_name"
+                    )
                 return {
                     "title": title,
                     "year": _extract_result_year(selected),
@@ -83,9 +85,7 @@ def _select_best_result(
     release_year: int | str | None = None,
 ) -> dict | None:
     candidates = [
-        result
-        for result in results
-        if result.get("media_type") in {"movie", "tv"}
+        result for result in results if result.get("media_type") in {"movie", "tv"}
     ]
     if not candidates:
         return None

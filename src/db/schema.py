@@ -144,13 +144,36 @@ CREATE TABLE IF NOT EXISTS vector_index_registry (
 
 DEFAULT_TAGS = [
     # theme 主题
-    ("遗憾", "theme"), ("时间", "theme"), ("父子", "theme"), ("死亡", "theme"), ("孤独", "theme"), ("重逢", "theme"),
+    ("遗憾", "theme"),
+    ("时间", "theme"),
+    ("父子", "theme"),
+    ("死亡", "theme"),
+    ("孤独", "theme"),
+    ("重逢", "theme"),
     # emotion 情绪
-    ("悲伤", "emotion"), ("释然", "emotion"), ("愤怒", "emotion"), ("燃", "emotion"), ("治愈", "emotion"), ("压抑", "emotion"),
+    ("悲伤", "emotion"),
+    ("释然", "emotion"),
+    ("愤怒", "emotion"),
+    ("燃", "emotion"),
+    ("治愈", "emotion"),
+    ("压抑", "emotion"),
     # scene 场景
-    ("雨夜", "scene"), ("告别", "scene"), ("奔跑", "scene"), ("独白", "scene"), ("争吵", "scene"), ("沉默", "scene"),
+    ("雨夜", "scene"),
+    ("告别", "scene"),
+    ("奔跑", "scene"),
+    ("独白", "scene"),
+    ("争吵", "scene"),
+    ("沉默", "scene"),
     # usage 用途
-    ("开场", "usage"), ("转场", "usage"), ("高潮", "usage"), ("结尾", "usage"), ("金句升华", "usage"),
+    ("开场", "usage"),
+    ("转场", "usage"),
+    ("高潮", "usage"),
+    ("结尾", "usage"),
+    ("金句升华", "usage"),
     # style 风格
-    ("文艺", "style"), ("悬疑", "style"), ("史诗", "style"), ("日常", "style"), ("黑色幽默", "style")
+    ("文艺", "style"),
+    ("悬疑", "style"),
+    ("史诗", "style"),
+    ("日常", "style"),
+    ("黑色幽默", "style"),
 ]

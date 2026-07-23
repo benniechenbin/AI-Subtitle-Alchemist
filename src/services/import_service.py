@@ -75,9 +75,7 @@ def process_uploaded_files(
             except Exception as e:
                 logs.append(f"⚠️ 向量化失败: {e}")
                 logger.error(f"文件 {name} 向量化失败: {e}")
-        clean_title = (
-            str(meta.get("识别片名", "")).replace("/", "_").replace(":", " ")
-        )
+        clean_title = str(meta.get("识别片名", "")).replace("/", "_").replace(":", " ")
         new_name = f"{clean_title}"
         if meta.get("年份"):
             new_name += f" ({meta['年份']})"
@@ -107,7 +105,11 @@ def process_uploaded_files(
             continue
 
         processed_files.append({"name": new_name, "content": content})
-        current_dim = embeddings.shape[1] if (model and len(embeddings) > 0) else 0
+        current_dim = (
+            embeddings.shape[1]
+            if (model and len(embeddings) > 0 and hasattr(embeddings, "shape"))
+            else 0
+        )
 
         for i, s in enumerate(subs):
             emb_blob = (
@@ -154,9 +156,7 @@ def process_uploaded_files(
                     }
                 )
         elif tmdb_match:
-            logs.append(
-                f"ℹ️ 片名或年份已手工修改，已取消 TMDB 绑定: {name}"
-            )
+            logs.append(f"ℹ️ 片名或年份已手工修改，已取消 TMDB 绑定: {name}")
 
     return logs, processed_files, stats, pending_rows, pending_vectors, pending_meta
 
@@ -175,16 +175,18 @@ def _persist_clean_file(
     source_is_confirmed = False
     if source_path and os.path.isfile(source_path):
         with open(source_path, "rb") as source_file:
-            source_is_confirmed = (
-                calculate_file_hash(source_file.read()) == source_hash
-            )
+            source_is_confirmed = calculate_file_hash(source_file.read()) == source_hash
 
     if os.path.exists(save_path):
         with open(save_path, "rb") as existing_file:
             if calculate_file_hash(existing_file.read()) != stored_hash:
                 raise FileExistsError(f"目标文件已存在且内容不同: {save_path}")
 
-    if source_is_confirmed and source_path != os.path.abspath(save_path):
+    if (
+        source_is_confirmed
+        and source_path is not None
+        and source_path != os.path.abspath(save_path)
+    ):
         if source_bytes == stored_bytes:
             os.replace(source_path, save_path)
         else:
@@ -222,11 +224,10 @@ def _write_bytes_atomically(path: str, content: bytes) -> None:
 
 
 def _tmdb_match_is_valid(meta: dict, tmdb_match: dict) -> bool:
-    return (
-        _normalized_title(meta.get("识别片名"))
-        == _normalized_title(tmdb_match.get("expected_title"))
-        and _normalized_year(meta.get("年份"))
-        == _normalized_year(tmdb_match.get("expected_year"))
+    return _normalized_title(meta.get("识别片名")) == _normalized_title(
+        tmdb_match.get("expected_title")
+    ) and _normalized_year(meta.get("年份")) == _normalized_year(
+        tmdb_match.get("expected_year")
     )
 
 

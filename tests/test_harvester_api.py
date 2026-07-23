@@ -1,14 +1,6 @@
-import importlib.util
-from pathlib import Path
-
 import pytest
 import requests
-
-MODULE_PATH = Path(__file__).parents[1] / "src" / "services" / "harvester_api.py"
-SPEC = importlib.util.spec_from_file_location("harvester_api", MODULE_PATH)
-harvester_api = importlib.util.module_from_spec(SPEC)
-assert SPEC and SPEC.loader
-SPEC.loader.exec_module(harvester_api)
+from src.services import harvester_api
 
 HarvesterApiClient = harvester_api.HarvesterApiClient
 HarvesterApiError = harvester_api.HarvesterApiError
@@ -37,9 +29,7 @@ def test_harvester_health_uses_base_url(monkeypatch):
     payload = HarvesterApiClient("http://127.0.0.1:8000/").health()
 
     assert payload["status"] == "ok"
-    assert calls == [
-        ("GET", "http://127.0.0.1:8000/health", None, None, 2.0)
-    ]
+    assert calls == [("GET", "http://127.0.0.1:8000/health", None, None, 2.0)]
 
 
 def test_harvester_discovery_posts_payload(monkeypatch):
@@ -75,8 +65,18 @@ def test_harvester_client_methods_map_to_expected_endpoints(monkeypatch):
     client.export_library(manifest_paths=["/tmp/manifest.json"], library_dir="/tmp/lib")
 
     assert calls == [
-        ("GET", "http://harvester/candidates", None, {"source_path": "/tmp/candidates.json"}),
-        ("POST", "http://harvester/candidates/curate", {"rows": [{"title": "Demo"}]}, None),
+        (
+            "GET",
+            "http://harvester/candidates",
+            None,
+            {"source_path": "/tmp/candidates.json"},
+        ),
+        (
+            "POST",
+            "http://harvester/candidates/curate",
+            {"rows": [{"title": "Demo"}]},
+            None,
+        ),
         ("POST", "http://harvester/subtitles/collect", {"providers": ["assrt"]}, None),
         ("GET", "http://harvester/manifests", None, None),
         ("GET", "http://harvester/manifests/movie_1", None, None),

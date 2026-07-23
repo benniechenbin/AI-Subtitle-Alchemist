@@ -16,7 +16,6 @@ from src.services.poster_service import (
 )
 from src.services.tmdb_service import fetch_tmdb_poster
 from src.services.highlight_service import HighlightService
-from src.observability.logger import logger
 
 
 def render_database_tab(ctx: dict) -> None:
@@ -45,7 +44,12 @@ def render_database_tab(ctx: dict) -> None:
         st.error(f"发现 {len(files)} 个文件已从硬盘移除。")
         c_clean, c_cancel, _ = st.columns([1.5, 1, 5])
         with c_clean:
-            if st.button("🧹 立即清理无效记录", type="primary", width="stretch", key="run_cleanup_files"):
+            if st.button(
+                "🧹 立即清理无效记录",
+                type="primary",
+                width="stretch",
+                key="run_cleanup_files",
+            ):
                 deleted_ids = db.delete_records_by_path(db_path, files)
                 get_vector_index_service().delete(db_path, deleted_ids)
                 st.session_state.pop("pending_cleanup_files", None)
@@ -62,7 +66,7 @@ def render_database_tab(ctx: dict) -> None:
 
     # 2. 🎬 核心亮点：智能海报墙看板
     st.subheader("🖼️ 素材库海报墙")
-    
+
     # 每次渲染时先做一次弱同步，保证新增的电影能进 meta 表
     db.sync_movies_to_meta(db_path)
     movies_list = db.get_movies_with_meta(db_path)
@@ -75,41 +79,53 @@ def render_database_tab(ctx: dict) -> None:
         for i in range(0, len(movies_list), cols_per_row):
             row_movies = movies_list[i : i + cols_per_row]
             cols = st.columns(cols_per_row)
-            
+
             for col, movie in zip(cols, row_movies):
                 with col:
                     with st.container(border=True):
                         # 如果没有海报 URL，使用现代主义灰色方块占位
                         if movie["poster_url"]:
-                            st.image(movie["poster_url"], width='stretch')
+                            st.image(movie["poster_url"], width="stretch")
                         else:
                             st.markdown(
                                 """
-                                <div style="background-color: #262730; height: 260px; border-radius: 5px; 
-                                display: flex; align-items: center; justify-content: center; color: #808495; 
+                                <div style="background-color: #262730; height: 260px; border-radius: 5px;
+                                display: flex; align-items: center; justify-content: center; color: #808495;
                                 font-size: 14px; margin-bottom: 10px; border: 1px dashed #434651;">
                                 🎬 暂无海报数据
                                 </div>
                                 """,
-                                unsafe_allow_html=True
+                                unsafe_allow_html=True,
                             )
-                        
+
                         # 电影文本元数据展示
                         st.markdown(f"**{movie['movie_name']}**")
-                        year_str = f" ({movie['release_year']})" if movie['release_year'] else ""
-                        st.caption(f"📅 年份: {year_str} | 💬 台词: {movie['line_count']} 条")
+                        year_str = (
+                            f" ({movie['release_year']})"
+                            if movie["release_year"]
+                            else ""
+                        )
+                        st.caption(
+                            f"📅 年份: {year_str} | 💬 台词: {movie['line_count']} 条"
+                        )
                         st.divider()
                         # 如果缺失海报，提供动态补取按钮
                         if not movie["poster_url"]:
-                            if st.button("🖼️ 抓取海报", key=f"poster_{movie['movie_name']}", width="stretch"):
+                            if st.button(
+                                "🖼️ 抓取海报",
+                                key=f"poster_{movie['movie_name']}",
+                                width="stretch",
+                            ):
                                 with st.spinner("逆向抓取中..."):
                                     poster_url = fetch_tmdb_poster(
                                         movie["movie_name"],
                                         release_year=movie["release_year"],
                                     )
                                     if poster_url:
-                                        db.update_movie_poster(db_path, movie["movie_name"], poster_url)
-                                        st.toast(f"🎉 海报抓取成功！")
+                                        db.update_movie_poster(
+                                            db_path, movie["movie_name"], poster_url
+                                        )
+                                        st.toast("🎉 海报抓取成功！")
                                         time.sleep(1)
                                         st.rerun()
                                     else:
@@ -118,13 +134,23 @@ def render_database_tab(ctx: dict) -> None:
                         # 渲染金句挖掘按钮状态机
                         status = movie.get("highlight_status", 0)
                         if status == 0 or status == 3:
-                            btn_label = "🪄 提炼金句" if status == 0 else "❌ 挖掘失败，点击重试"
-                            if st.button(btn_label, key=f"hl_{movie['movie_name']}", width="stretch"):
-                                with st.spinner("AI 正在逐帧通读全片台词，可能需要 1-3 分钟，请稍候..."):
+                            btn_label = (
+                                "🪄 提炼金句"
+                                if status == 0
+                                else "❌ 挖掘失败，点击重试"
+                            )
+                            if st.button(
+                                btn_label,
+                                key=f"hl_{movie['movie_name']}",
+                                width="stretch",
+                            ):
+                                with st.spinner(
+                                    "AI 正在逐帧通读全片台词，可能需要 1-3 分钟，请稍候..."
+                                ):
                                     try:
                                         HighlightService.extract_movie_highlights(
-                                            movie["movie_name"], 
-                                            api_key=get_effective_api_key()
+                                            movie["movie_name"],
+                                            api_key=get_effective_api_key(),
                                         )
                                         st.toast("🎉 金句提炼完成！")
                                         time.sleep(1)
@@ -132,9 +158,19 @@ def render_database_tab(ctx: dict) -> None:
                                     except Exception as e:
                                         st.error(f"挖掘失败: {e}")
                         elif status == 1:
-                            st.button("⏳ 疯狂挖掘中...", key=f"hl_ing_{movie['movie_name']}", disabled=True, width="stretch")
+                            st.button(
+                                "⏳ 疯狂挖掘中...",
+                                key=f"hl_ing_{movie['movie_name']}",
+                                disabled=True,
+                                width="stretch",
+                            )
                         elif status == 2:
-                            if st.button("✨ 查看金句", key=f"hl_done_{movie['movie_name']}", width="stretch", type="primary"):
+                            if st.button(
+                                "✨ 查看金句",
+                                key=f"hl_done_{movie['movie_name']}",
+                                width="stretch",
+                                type="primary",
+                            ):
                                 _show_quotes_dialog(movie["movie_name"], db_path)
 
         st.divider()
@@ -177,17 +213,20 @@ def render_database_tab(ctx: dict) -> None:
     with st.expander("🧪 标签系统调试面板 (资产模型验证)", expanded=False):
         _render_debug_tag_panel(db_path)
 
+
 def _render_debug_tag_panel(db_path: str):
     c1, c2 = st.columns(2)
     with c1:
         st.markdown("#### 1. 标签字典概览")
-        tag_type = st.selectbox("标签维度", ["theme", "emotion", "scene", "usage", "style"])
+        tag_type = st.selectbox(
+            "标签维度", ["theme", "emotion", "scene", "usage", "style"]
+        )
         tags = db.get_tags_by_type(db_path, tag_type)
         if tags:
             st.write(pd.DataFrame(tags))
         else:
             st.info("该维度暂无标签")
-    
+
     with c2:
         st.markdown("#### 2. 手动关联测试")
         movies = db.get_all_movies(db_path)
@@ -196,15 +235,17 @@ def _render_debug_tag_panel(db_path: str):
             all_tags = []
             for ttype in ["theme", "emotion", "scene", "usage", "style"]:
                 all_tags.extend(db.get_tags_by_type(db_path, ttype))
-            
-            tag_options = {f"{t['name']} ({t['type']})": t['id'] for t in all_tags}
-            sel_tag_label = st.selectbox("选择标签", list(tag_options.keys()), key="debug_sel_tag")
+
+            tag_options = {f"{t['name']} ({t['type']})": t["id"] for t in all_tags}
+            sel_tag_label = st.selectbox(
+                "选择标签", list(tag_options.keys()), key="debug_sel_tag"
+            )
             tag_id = tag_options[sel_tag_label]
-            
+
             if st.button("🔗 关联标签", type="primary"):
                 db.link_tag_to_movie(db_path, sel_movie, tag_id)
                 st.toast(f"✅ 已将 {sel_tag_label} 关联至 {sel_movie}")
-            
+
             st.markdown("---")
             st.markdown(f"**《{sel_movie}》已有标签：**")
             movie_tags = db.get_movie_tags(db_path, sel_movie)
@@ -216,15 +257,16 @@ def _render_debug_tag_panel(db_path: str):
         else:
             st.info("库中暂无电影，无法测试关联。")
 
+
 @st.dialog("✨ 黄金台词大赏")
 def _show_quotes_dialog(movie_name: str, db_path: str):
     st.markdown(f"### 《{movie_name}》")
     quotes = db.get_golden_quotes(db_path, movie_name)
-    
+
     if not quotes:
         st.info("大模型未能从该片中提取出符合标准的金句，或提取过程出错。")
         return
-        
+
     st.success(f"共为您提炼出 {len(quotes)} 条直击灵魂的台词。")
     for q in quotes:
         with st.container(border=True):
@@ -264,7 +306,9 @@ def _run_rebuild_index(library_path: str, embedding_model: str, db_path: str) ->
                     model=model,
                 )
                 if not rebuilt:
-                    st.warning("⚠️ 向量索引同步被跳过（可能缺少模型或 sqlite-vec 不可用）")
+                    st.warning(
+                        "⚠️ 向量索引同步被跳过（可能缺少模型或 sqlite-vec 不可用）"
+                    )
                 st.write("🖼️ 开始自动补齐缺失海报...")
                 poster_result = backfill_missing_posters(
                     db_path,

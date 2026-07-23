@@ -75,9 +75,8 @@ def render_clean_import_tab(ctx: dict) -> None:
                 st.session_state["tmdb_matches"] = upload_analysis.tmdb_matches
                 st.session_state["process_done"] = False
 
-    if (
-        st.session_state["analysis_data"] is not None
-        and not st.session_state.get("pending_import")
+    if st.session_state["analysis_data"] is not None and not st.session_state.get(
+        "pending_import"
     ):
         subtitle_upload_files = st.session_state.get("subtitle_upload_files", [])
         if subtitle_upload_files:
@@ -106,7 +105,9 @@ def _render_metadata_editor(uploaded_files, library_path, embedding_model, db_pa
     with st.expander("🛠️ 批量改名与年代工具", expanded=False):
         c1, c2, c3 = st.columns([2, 1, 1])
         with c1:
-            bulk_name = st.text_input("统一修改片名为...", placeholder="例如：葬送的芙莉莲")
+            bulk_name = st.text_input(
+                "统一修改片名为...", placeholder="例如：葬送的芙莉莲"
+            )
         with c2:
             bulk_year = st.number_input(
                 "统一修改年份", min_value=1900, max_value=2100, value=2025
@@ -216,7 +217,9 @@ def _run_batch_process(
             }
 
         st.session_state["process_done"] = True
-        status.update(label="✅ 处理完成！准备入库...", state="complete", expanded=False)
+        status.update(
+            label="✅ 处理完成！准备入库...", state="complete", expanded=False
+        )
         time.sleep(1)
         st.rerun()
 
@@ -287,7 +290,9 @@ def _render_import_confirmation(db_path):
     with confirm_col:
         if st.button("确认入库", type="primary", width="stretch", key="confirm_import"):
             pending_rows = st.session_state["pending_import"]["pending_rows"]
-            pending_vectors = st.session_state["pending_import"].get("pending_vectors", [])
+            pending_vectors = st.session_state["pending_import"].get(
+                "pending_vectors", []
+            )
             pending_meta = st.session_state["pending_import"].get("pending_meta", [])
 
             pending_payload = {

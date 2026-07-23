@@ -14,6 +14,7 @@ def get_all_movies(db_path=None):
     finally:
         conn.close()
 
+
 def get_library_stats(db_path=None):
     conn = get_db_connection(db_path)
     c = conn.cursor()
@@ -33,14 +34,15 @@ def get_library_stats(db_path=None):
     finally:
         conn.close()
 
+
 def sync_movies_to_meta(db_path=None):
     conn = get_db_connection(db_path)
     c = conn.cursor()
     try:
         c.execute("""
             INSERT OR IGNORE INTO movies_meta (movie_name, release_year)
-            SELECT movie_name, MAX(year) 
-            FROM subtitles 
+            SELECT movie_name, MAX(year)
+            FROM subtitles
             WHERE movie_name IS NOT NULL
             GROUP BY movie_name
         """)
@@ -48,15 +50,16 @@ def sync_movies_to_meta(db_path=None):
     finally:
         conn.close()
 
+
 def get_movies_with_meta(db_path=None) -> list[dict]:
     conn = get_db_connection(db_path)
     c = conn.cursor()
     try:
         c.execute("""
-            SELECT 
-                m.movie_name, 
-                m.poster_url, 
-                m.release_year, 
+            SELECT
+                m.movie_name,
+                m.poster_url,
+                m.release_year,
                 m.highlight_status,
                 COUNT(s.id) as line_count
             FROM movies_meta m
@@ -65,10 +68,17 @@ def get_movies_with_meta(db_path=None) -> list[dict]:
             HAVING COUNT(s.id) > 0
             ORDER BY line_count DESC
         """)
-        columns = ['movie_name', 'poster_url', 'release_year', 'highlight_status', 'line_count']
+        columns = [
+            "movie_name",
+            "poster_url",
+            "release_year",
+            "highlight_status",
+            "line_count",
+        ]
         return [dict(zip(columns, row)) for row in c.fetchall()]
     finally:
         conn.close()
+
 
 def get_movies_missing_posters(db_path=None) -> list[dict]:
     conn = get_db_connection(db_path)
@@ -90,20 +100,21 @@ def get_movies_missing_posters(db_path=None) -> list[dict]:
     finally:
         conn.close()
 
-def update_movie_poster(db_path: str, movie_name: str, poster_url: str) -> None:
+
+def update_movie_poster(db_path: str | None, movie_name: str, poster_url: str) -> None:
     conn = get_db_connection(db_path)
     c = conn.cursor()
     try:
         c.execute(
             "UPDATE movies_meta SET poster_url = ? WHERE movie_name = ?",
-            (poster_url, movie_name)
+            (poster_url, movie_name),
         )
         conn.commit()
     finally:
         conn.close()
 
 
-def upsert_movie_metadata(db_path: str, metadata: dict) -> None:
+def upsert_movie_metadata(db_path: str | None, metadata: dict) -> None:
     conn = get_db_connection(db_path)
     try:
         upsert_movie_metadata_on_connection(conn, metadata)
@@ -128,7 +139,9 @@ def upsert_movie_metadata_on_connection(conn, metadata: dict) -> None:
         "poster_url": f"{TMDB_POSTER_BASE_URL}{poster_path}" if poster_path else None,
         "release_year": _int_or_none(metadata.get("year")),
         "media_key": _text_or_none(metadata.get("media_key")),
-        "media_type": _text_or_none(content.get("media_type") or metadata.get("media_type")),
+        "media_type": _text_or_none(
+            content.get("media_type") or metadata.get("media_type")
+        ),
         "tmdb_id": _int_or_none(
             content.get("tmdb_id") or content.get("id") or metadata.get("tmdb_id")
         ),
@@ -147,7 +160,9 @@ def upsert_movie_metadata_on_connection(conn, metadata: dict) -> None:
         "original_language": _text_or_none(content.get("original_language")),
         "origin_countries_json": _json_or_none(content.get("origin_countries")),
         "spoken_languages_json": _json_or_none(content.get("spoken_languages")),
-        "release_date": _text_or_none(content.get("release_date") or content.get("first_air_date")),
+        "release_date": _text_or_none(
+            content.get("release_date") or content.get("first_air_date")
+        ),
         "runtime_minutes": _int_or_none(content.get("runtime_minutes")),
         "status": _text_or_none(content.get("status")),
         "first_air_date": _text_or_none(content.get("first_air_date")),

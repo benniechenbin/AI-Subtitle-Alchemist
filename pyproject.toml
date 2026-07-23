@@ -25,7 +25,23 @@ dependencies = [
     "streamlit>=1.30.0",
     "torchvision>=0.27.1; sys_platform != 'darwin' or platform_machine != 'x86_64'",
     "torchvision>=0.17.2; sys_platform == 'darwin' and platform_machine == 'x86_64'",
+    "mypy>=2.3.0",
 ]
 
 [tool.pyright]
 extraPaths = ["."]
+
+[tool.mypy]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+markers = ["manual: manual tests requiring API keys or network"]
+
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.6.1",
+    "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
+]

@@ -103,9 +103,7 @@ def test_unchanged_tmdb_match_is_prepared_for_atomic_import(tmp_path):
     assert result[5][0]["tmdb_metadata"]["content"]["id"] == 42
 
 
-def test_atomic_import_rolls_back_subtitles_when_metadata_fails(
-    tmp_path, monkeypatch
-):
+def test_atomic_import_rolls_back_subtitles_when_metadata_fails(tmp_path, monkeypatch):
     from src.db.repos import subtitle_repo
 
     db_path = tmp_path / "rollback.db"

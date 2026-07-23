@@ -72,16 +72,22 @@ def scan_library(
             if live_existing_paths:
                 existing_path = sorted(live_existing_paths)[0]
                 yield (
-                    f"⚠️ 跳过同内容旧副本: {file} "
-                    f"(已由 {os.path.basename(existing_path)} 入库)"
-                ), new_count
+                    (
+                        f"⚠️ 跳过同内容旧副本: {file} "
+                        f"(已由 {os.path.basename(existing_path)} 入库)"
+                    ),
+                    new_count,
+                )
                 continue
 
             if f_hash in seen_hashes:
                 yield (
-                    f"⚠️ 跳过同内容旧副本: {file} "
-                    f"(保留 {os.path.basename(seen_hashes[f_hash])})"
-                ), new_count
+                    (
+                        f"⚠️ 跳过同内容旧副本: {file} "
+                        f"(保留 {os.path.basename(seen_hashes[f_hash])})"
+                    ),
+                    new_count,
+                )
                 continue
 
             ext = file.lower().split(".")[-1]
@@ -106,7 +112,11 @@ def scan_library(
             )
             rows = []
             vector_rows = []
-            dim = embeddings.shape[1] if len(embeddings) > 0 else 0
+            dim = (
+                embeddings.shape[1]
+                if (len(embeddings) > 0 and hasattr(embeddings, "shape"))
+                else 0
+            )
             row_model_name = model_name if dim else None
 
             for i, s in enumerate(subs):

@@ -11,7 +11,9 @@ from src.observability.logger import logger
 
 class HighlightService:
     @staticmethod
-    def extract_movie_highlights(movie_name: str, chunk_size: int = 200, api_key: str | None = None) -> int:
+    def extract_movie_highlights(
+        movie_name: str, chunk_size: int = 200, api_key: str | None = None
+    ) -> int:
         """
         对指定电影的完整字幕进行大模型分批扫描，提炼金句并持久化。
 
@@ -27,8 +29,8 @@ class HighlightService:
         c = conn.cursor()
         try:
             c.execute(
-                "UPDATE movies_meta SET highlight_status = 1 WHERE movie_name = ?", 
-                (movie_name,)
+                "UPDATE movies_meta SET highlight_status = 1 WHERE movie_name = ?",
+                (movie_name,),
             )
             c.execute("DELETE FROM golden_quotes WHERE movie_name = ?", (movie_name,))
             conn.commit()
@@ -38,20 +40,27 @@ class HighlightService:
             return 0
 
         # 2. 拉取该电影的所有原始字幕
-        c.execute("""
-            SELECT start_time, content FROM subtitles 
-            WHERE movie_name = ? 
+        c.execute(
+            """
+            SELECT start_time, content FROM subtitles
+            WHERE movie_name = ?
             ORDER BY id ASC
-        """, (movie_name,))
+        """,
+            (movie_name,),
+        )
         all_lines = c.fetchall()
         conn.close()
 
         if not all_lines:
-            logger.warning(f"🗙 影视剧《{movie_name}》在数据库中未找到任何台词记录，中止挖掘。")
-            HighlightService._set_status(movie_name, 0) # 重置为未挖掘
+            logger.warning(
+                f"🗙 影视剧《{movie_name}》在数据库中未找到任何台词记录，中止挖掘。"
+            )
+            HighlightService._set_status(movie_name, 0)  # 重置为未挖掘
             return 0
 
-        logger.info(f"🎬 开始对《{movie_name}》进行金句深度挖掘，总计 {len(all_lines)} 行台词，每批次 {chunk_size} 行...")
+        logger.info(
+            f"🎬 开始对《{movie_name}》进行金句深度挖掘，总计 {len(all_lines)} 行台词，每批次 {chunk_size} 行..."
+        )
 
         # 获取当前配置的 LLM 参数
         final_api_key = api_key or settings.get_llm_api_key()
@@ -80,11 +89,13 @@ class HighlightService:
                         user_prompt=user_prompt,
                         api_key=final_api_key,
                         model_name=model_name,
-                        base_url=base_url
+                        base_url=base_url,
                     )
 
                     # 清洗大模型可能自带的 ```json 脏标记
-                    clean_json_str = re.sub(r"```json\s*|```", "", response_text).strip()
+                    clean_json_str = re.sub(
+                        r"```json\s*|```", "", response_text
+                    ).strip()
                     if not clean_json_str or clean_json_str == "[]":
                         continue
 
@@ -96,36 +107,47 @@ class HighlightService:
                         for q in quotes_list:
                             # 防御性编程：确保大模型返回了必要的字段
                             if "content" in q and "timestamp" in q:
-                                insert_rows.append((
-                                    movie_name,
-                                    q["content"],
-                                    q["timestamp"],
-                                    q.get("reason", "未提供理由")
-                                ))
+                                insert_rows.append(
+                                    (
+                                        movie_name,
+                                        q["content"],
+                                        q["timestamp"],
+                                        q.get("reason", "未提供理由"),
+                                    )
+                                )
 
                         if insert_rows:
                             conn = get_db_connection(db_path)
                             c = conn.cursor()
-                            c.executemany("""
+                            c.executemany(
+                                """
                                 INSERT INTO golden_quotes (movie_name, quote_content, timestamp, reason)
                                 VALUES (?, ?, ?, ?)
-                            """, insert_rows)
+                            """,
+                                insert_rows,
+                            )
                             conn.commit()
                             conn.close()
 
                             total_saved += len(insert_rows)
-                            logger.info(f"📦 批次 {i//chunk_size + 1} 处理完毕，成功提炼 {len(insert_rows)} 条金句。")
+                            logger.info(
+                                f"📦 批次 {i // chunk_size + 1} 处理完毕，成功提炼 {len(insert_rows)} 条金句。"
+                            )
 
                 except json.JSONDecodeError:
-                    logger.error(f"❌ 大模型批次 {i//chunk_size + 1} 返回的不是合法的 JSON 格式，跳过该批次。原始内容: {response_text}")
+                    logger.error(
+                        f"❌ 大模型批次 {i // chunk_size + 1} 返回的不是合法的 JSON 格式，跳过该批次。原始内容: {response_text}"
+                    )
 
             # 5. 收尾：更新状态为 2 (已挖掘)
             HighlightService._set_status(movie_name, 2)
-            logger.success(f"🎉 《{movie_name}》金句挖掘战役圆满结束！共计持久化 {total_saved} 条黄金时刻台词。")
+            logger.success(
+                f"🎉 《{movie_name}》金句挖掘战役圆满结束！共计持久化 {total_saved} 条黄金时刻台词。"
+            )
 
         except Exception as e:
             logger.error(f"❌ 《{movie_name}》挖掘过程中断: {e}")
-            HighlightService._set_status(movie_name, 3) # 标记为失败
+            HighlightService._set_status(movie_name, 3)  # 标记为失败
             raise e
 
         return total_saved
@@ -137,8 +159,8 @@ class HighlightService:
         conn = get_db_connection(db_path)
         c = conn.cursor()
         c.execute(
-            "UPDATE movies_meta SET highlight_status = ? WHERE movie_name = ?", 
-            (status, movie_name)
+            "UPDATE movies_meta SET highlight_status = ? WHERE movie_name = ?",
+            (status, movie_name),
         )
         conn.commit()
         conn.close()

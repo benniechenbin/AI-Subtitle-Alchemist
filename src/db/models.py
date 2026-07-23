@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-from typing import Optional, List
+from typing import Optional
+
 
 @dataclass
 class MovieMeta:
@@ -9,12 +10,14 @@ class MovieMeta:
     highlight_status: int = 0
     line_count: int = 0
 
+
 @dataclass
 class GoldenQuote:
     content: str
     timestamp: str
     reason: str
     movie_name: Optional[str] = None
+
 
 @dataclass
 class BgmAsset:
@@ -24,10 +27,11 @@ class BgmAsset:
     energy: float
     tempo: int
     tags: str
-    source: str = 'llm_prior'
+    source: str = "llm_prior"
     confidence: float = 0.5
     user_verified: int = 0
     updated_at: Optional[str] = None
+
 
 @dataclass
 class Tag:
@@ -35,4 +39,4 @@ class Tag:
     name: str
     tag_type: str
     confidence: float = 1.0
-    source: str = 'manual'
+    source: str = "manual"

@@ -14,7 +14,7 @@ def detect_encoding(file_bytes: bytes) -> str:
     encoding = result["encoding"]
     if not encoding or result["confidence"] < 0.5:
         return "utf-8-sig"
-    if encoding.lower() == "gb2312":
+    if encoding.lower() in ("gb2312", "euc-cn", "gbk", "gb18030"):
         return "gb18030"
     return encoding
 
@@ -31,12 +31,14 @@ def decode_subtitle_bytes(file_bytes: bytes) -> tuple[str, str, bool]:
 
     if detected_enc:
         enc = detected_enc.lower()
-        if enc == "gb2312":
+        if enc in ("gb2312", "euc-cn", "gbk", "gb18030"):
             enc = "gb18030"
         if confidence >= 0.5:
             try:
                 content = file_bytes.decode(enc)
-                if "\ufffd" not in content:
+                if "\ufffd" not in content and not any(
+                    "\ue000" <= c <= "\uf8ff" for c in content
+                ):
                     return content, enc, False
             except Exception:
                 pass
@@ -55,16 +57,11 @@ def decode_subtitle_bytes(file_bytes: bytes) -> tuple[str, str, bool]:
 
     for enc in fallbacks:
         try:
-            # 如果 chardet 已经试过了，就不再重复试
-            if detected_enc and enc == detected_enc.lower():
-                continue
             content = file_bytes.decode(enc)
-            # utf-16 有时会把二进制误识别，这里做个简单的启发式检查：
-            # 字幕文件通常包含一些标点符号或数字
-            if enc == "utf-16" and len(content) > 10:
-                if not any(c in content for c in "0123456789:->"):
-                    continue
-            return content, enc, False
+            if "\ufffd" not in content and not any(
+                "\ue000" <= c <= "\uf8ff" for c in content
+            ):
+                return content, enc, False
         except Exception:
             continue
 

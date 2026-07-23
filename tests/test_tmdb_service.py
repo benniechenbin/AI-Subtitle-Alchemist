@@ -98,9 +98,7 @@ def test_search_filters_people_and_normalizes_tmdb_identity(monkeypatch):
 
     monkeypatch.setattr(tmdb_service.requests, "get", fake_get)
 
-    metadata = tmdb_service.search_tmdb_metadata(
-        "Original Series", api_key="fake-key"
-    )
+    metadata = tmdb_service.search_tmdb_metadata("Original Series", api_key="fake-key")
 
     assert metadata["title"] == "中文剧名"
     assert metadata["year"] == 2025
