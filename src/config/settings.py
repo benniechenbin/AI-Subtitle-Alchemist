@@ -101,7 +101,7 @@ class SettingsManager:
             try:
                 with open(PREFERENCES_FILE, "r", encoding="utf-8") as f:
                     prefs = UserPreferences(**json.load(f))
-            except Exception:
+            except Exception:  # noqa: BLE001
                 prefs = UserPreferences()
         else:
             prefs = UserPreferences()
@@ -137,7 +137,7 @@ class SettingsManager:
         try:
             with open(LEGACY_CONFIG_FILE, "r", encoding="utf-8") as f:
                 legacy = json.load(f)
-        except Exception:
+        except Exception:  # noqa: BLE001
             return False
 
         field_map = {

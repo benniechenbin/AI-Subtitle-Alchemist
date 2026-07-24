@@ -55,11 +55,11 @@ def scan_library(
                     with open(temp_path, "w", encoding="utf-8") as f_out:
                         f_out.write(content)
                     os.replace(temp_path, full_path)
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001
                     if os.path.exists(temp_path):
                         try:
                             os.remove(temp_path)
-                        except Exception:
+                        except Exception:  # noqa: BLE001, S110
                             pass
                     yield f"⚠️ 无法规范化文件编码 {file}: {e}", new_count
 
@@ -70,7 +70,7 @@ def scan_library(
                 path for path in existing_paths if os.path.exists(path)
             }
             if live_existing_paths:
-                existing_path = sorted(live_existing_paths)[0]
+                existing_path = min(live_existing_paths)
                 yield (
                     (
                         f"⚠️ 跳过同内容旧副本: {file} "
@@ -147,7 +147,7 @@ def scan_library(
                 )
             new_count += 1
             yield f"✅ 已入库: {file}", new_count
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             yield f"❌ 失败 {file}: {e}", new_count
 
     missing = list(db_files - disk_files)
@@ -175,12 +175,12 @@ def _cleanup_indexed_duplicates(
     db_path: str | None, sync_vector_index: bool
 ) -> list[str]:
     messages = []
-    for _file_hash, indexed_paths in db.get_file_hash_path_index(db_path).items():
+    for indexed_paths in db.get_file_hash_path_index(db_path).values():
         live_paths = [path for path in indexed_paths if os.path.exists(path)]
         if len(live_paths) < 2:
             continue
 
-        keep_path = sorted(live_paths, key=_scan_priority)[0]
+        keep_path = min(live_paths, key=_scan_priority)
         duplicate_paths = [path for path in live_paths if path != keep_path]
         try:
             deleted_ids = db.delete_records_by_path(db_path, duplicate_paths)
@@ -191,7 +191,7 @@ def _cleanup_indexed_duplicates(
                 f"{', '.join(os.path.basename(path) for path in duplicate_paths)} "
                 f"(保留 {os.path.basename(keep_path)})"
             )
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             messages.append(
                 "⚠️ 重复记录清理失败，已保留原数据: "
                 f"{', '.join(os.path.basename(path) for path in duplicate_paths)} "

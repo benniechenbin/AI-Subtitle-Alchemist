@@ -1,4 +1,5 @@
 import pytest
+
 from src.utils.subtitle import decode_subtitle_bytes
 
 
@@ -76,7 +77,7 @@ def test_decode_fallback_success():
 def test_decode_corrupted():
     # A sequence that should fail most strict decodings
     raw = b"\x80\x81\xff\xff\x00\x00\x01\x01"
-    content, encoding, had_replace = decode_subtitle_bytes(raw)
+    _content, encoding, had_replace = decode_subtitle_bytes(raw)
     print(f"Corrupted sequence chose: {encoding}, had_replace: {had_replace}")
     # We expect either it fails all fallbacks and uses replacement
     # OR it matches something obscure but we don't care too much as long as it handles it.

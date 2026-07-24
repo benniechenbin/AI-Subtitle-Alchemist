@@ -242,7 +242,7 @@ class SqliteVecBackend:
         except Exception as exc:
             try:
                 conn.enable_load_extension(False)
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
             raise VectorIndexUnavailable(f"sqlite-vec failed to load: {exc}") from exc
 
@@ -611,13 +611,13 @@ def _embedding_from_blob(value) -> np.ndarray | None:
         return None
     try:
         return np.frombuffer(value, dtype=np.float32)
-    except Exception:
+    except Exception:  # noqa: BLE001
         try:
             parsed = json.loads(
                 value.decode("utf-8") if isinstance(value, bytes) else str(value)
             )
             return _as_float32(parsed)
-        except Exception:
+        except Exception:  # noqa: BLE001
             return None
 
 

@@ -1,5 +1,6 @@
 import pytest
 import requests
+
 from src.services import harvester_api
 
 HarvesterApiClient = harvester_api.HarvesterApiClient

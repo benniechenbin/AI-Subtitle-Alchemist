@@ -1,11 +1,10 @@
 from openai import OpenAI
+
 from src.observability.logger import logger
 
 
 class LLMCallError(RuntimeError):
     """LLM API 调用失败的自定义异常"""
-
-    pass
 
 
 def call_llm_api(
@@ -33,6 +32,6 @@ def call_llm_api(
         content = response.choices[0].message.content
         return content or ""
     except Exception as e:
-        error_msg = f"LLM API 调用失败 | 模型: {model_name} | 错误: {str(e)}"
+        error_msg = f"LLM API 调用失败 | 模型: {model_name} | 错误: {e!s}"
         logger.error(f"❌ {error_msg}")
         raise LLMCallError(error_msg) from e

@@ -1,6 +1,7 @@
 <div align="center">
 
 # 🎬 AI Subtitle Alchemist
+
 ### AI 字幕炼金术师
 
 <p align="center">
@@ -14,14 +15,13 @@
 ![License](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)
 ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)
 
-**Turn your local subtitles into a semantic knowledge base and creative inspiration.**  
+**Turn your local subtitles into a semantic knowledge base and creative inspiration.**
 **不仅仅是字幕搜索，更是你的本地视频灵感库。**
 
 > ✨ Built for video creators, editors, and writers who want to *think with subtitles*.
 >
 > ✨ 为 **混剪创作者 / 编剧 / 纪录片作者** 打造的本地字幕语义引擎。
 ![Demo Image](assets/demo.png)
-
 
 </div>
 
@@ -35,12 +35,14 @@
 </div>
 
 ### 🇬🇧 English
+
 1. **Educational Use Only**: This project is intended for **academic research and technical exchange** only.
 2. **Copyright Compliance**: Users are responsible for the copyright of the subtitle files and video content they process.
 3. **Data Privacy**: All data is stored locally in `data/subtitle_library.db`. Network access is only required for model downloads or LLM API calls.
 4. **No Warranty**: The software is provided "as is", without warranty of any kind.
 
 ### 🇨🇳 中文
+
 1. **仅供学习**：本项目仅用于**学术研究和技术交流**。
 2. **版权合规**：字幕与视频版权责任由用户自行承担。
 3. **数据隐私**：字幕与向量数据均保存在本地 SQLite 数据库中，仅在下载模型或调用 AI 接口时联网。
@@ -51,14 +53,17 @@
 ## 🚀 Why AI Subtitle Alchemist?（为什么是它？）
 
 ### 🎞 For Video Creators（视频创作者）
+
 - 用「情绪 / 意境」而不是关键词找台词
 - 快速生成混剪脚本与分镜思路
 
 ### ✍️ For Writers & Scriptwriters（写作者 / 编剧）
+
 - 将多年影视字幕沉淀为可搜索的灵感库
 - 让 AI 学习你偏爱的台词风格
 
 ### 🧠 For Knowledge Builders（知识管理者）
+
 - 把字幕当作一种“非结构化知识资产”管理
 - 本地化、可控、可复用
 
@@ -66,14 +71,15 @@
 
 ## ✨ Key Features（核心功能）
 
-- **🧹 Intelligent Cleaning（智能清洗）**  
+- **🧹 Intelligent Cleaning（智能清洗）**
   自动解析并规范混乱字幕文件名，统一转码为 UTF-8 SRT。
 
-- **🧠 Semantic Search（语义搜索）**  
+- **🧠 Semantic Search（语义搜索）**
   基于向量模型进行语义级检索，支持“概念找台词”。
 
-- **🤖 AI Scriptwriter（AI 编剧助手）**  
+- **🤖 AI Scriptwriter（AI 编剧助手）**
   基于本地字幕知识库生成混剪脚本与分镜创意。
+
 <details>
   <summary>Click to see example (点击查看生成脚本示例)</summary>
 
@@ -85,7 +91,7 @@
   > ...
   </details>
 
-- **⚡️ Speed Mode（极速入库）**  
+- **⚡️ Speed Mode（极速入库）**
   延迟向量索引，大批量字幕秒级导入。
 
 ---
@@ -100,28 +106,33 @@
 ### Quick Start（快速开始）
 
 #### 1. Clone Repository（克隆项目）
+
 ```bash
 git clone https://github.com/benniechenbin/AI-Subtitle-Alchemist.git
 cd AI-Subtitle-Alchemist
 ```
 
 #### 2. Create Conda Environment（创建环境）
+
 ```bash
 conda create -n subtitle_ai python=3.10
 conda activate subtitle_ai
 ```
 
 #### 3. Install Dependencies（安装依赖）
+
 ```bash
 pip install -r requirements.txt
 ```
 
 国内用户可使用镜像：
+
 ```bash
 pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 ```
 
 #### 4. Run Application（运行应用）
+
 ```bash
 streamlit run webui.py
 ```
@@ -133,15 +144,18 @@ streamlit run webui.py
 ## 📖 User Manual（使用手册）
 
 ### 🧹 Import & Clean（入库清洗）
+
 - 支持 `.srt / .ass / .vtt`
 - 大批量建议开启 **Speed Mode**
 
 ### 🗄️ Database Manager（数据库管理）
+
 - **Versioning**: Integrated migration system (V2+) ensures safe schema upgrades.
 - Support keyword / semantic search
 - Rebuild index anytime
 
 ### 🤖 AI Writer（AI 编剧）
+
 - 支持 DeepSeek / OpenAI / Ollama
 - 输出 Markdown 脚本
 
@@ -159,6 +173,7 @@ streamlit run webui.py
 ## ⚙️ Configuration（配置说明）
 
 首次运行自动生成 `config.json`：
+
 - 默认字幕库路径：`~/Movies/Subtitles`
 - 模型缓存：`~/.cache/torch/sentence_transformers`
 
@@ -167,6 +182,7 @@ streamlit run webui.py
 ## 🤝 Contribution（贡献）
 
 欢迎提交 PR：
+
 1. Fork
 2. Feature Branch
 3. Commit

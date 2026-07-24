@@ -1,5 +1,6 @@
 import os
 import time
+
 from src import db
 
 
@@ -75,7 +76,7 @@ if __name__ == "__main__":
     os.makedirs("data", exist_ok=True)
     try:
         test_repository_logic()
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         print(f"❌ TEST FAILED: {e}")
         import traceback
 

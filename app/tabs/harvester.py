@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -58,7 +58,7 @@ def render_harvester_discovery_tab(ctx: dict) -> None:
                 "年份",
                 min_value=1874,
                 max_value=2100,
-                value=datetime.now().year,
+                value=datetime.now(UTC).year,
             )
         with col2:
             month_label = st.selectbox(
@@ -460,6 +460,6 @@ def _clean_record(record: dict[str, Any]) -> dict[str, Any]:
     return clean
 
 
-def _none_if_zero(value: int | float) -> int | None:
+def _none_if_zero(value: float) -> int | None:
     parsed = int(value)
     return parsed if parsed > 0 else None

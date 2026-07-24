@@ -103,6 +103,6 @@ def _run_script_generation(
         except (ValueError, LLMCallError) as e:
             status.update(label="❌ 生成失败", state="error")
             st.error(str(e))
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             status.update(label="❌ 生成失败", state="error")
-            st.error(f"出错: {str(e)}")
+            st.error(f"出错: {e!s}")

@@ -1,4 +1,5 @@
 import os
+
 from src.db.base import get_db_connection
 from src.db.repos.media_repo import upsert_movie_metadata_on_connection
 
@@ -144,7 +145,7 @@ def get_context_by_id(db_path, center_id, movie_name, window=1):
         """
         cursor.execute(query, (center_id - window, center_id + window, movie_name))
         return " ".join([row[0] for row in cursor.fetchall()])
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         logger.error(f"⚠️ 获取字幕上下文失败 (ID:{center_id}): {e}")
         return ""
     finally:

@@ -1,6 +1,8 @@
 import time
-from src.observability.logger import logger
+
 from src.db.base import get_db_connection
+from src.observability.logger import logger
+
 from . import schema
 
 
@@ -132,7 +134,7 @@ def _migration_v4(conn):
     """V4 迁移：新写入不再把 embedding BLOB 存入 subtitles 表。"""
     # 旧库里的 embedding 列保留不动，避免 destructive migration。
     # 新库 schema 已移除该列，插入逻辑会用显式列名兼容两种表结构。
-    return None
+    return
 
 
 def _migration_v5(conn):

@@ -1,10 +1,11 @@
 import json
 import re
-from src.db import get_db_connection
-from src.services.llm import call_llm_api
-from src.prompts import HIGHLIGHT_SYSTEM_PROMPT
+
 from src.config.settings import settings
+from src.db import get_db_connection
 from src.observability.logger import logger
+from src.prompts import HIGHLIGHT_SYSTEM_PROMPT
+from src.services.llm import call_llm_api
 
 # 专门针对金句提取定制的 System Prompt
 
@@ -34,7 +35,7 @@ class HighlightService:
             )
             c.execute("DELETE FROM golden_quotes WHERE movie_name = ?", (movie_name,))
             conn.commit()
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.error(f"❌ 初始化挖掘状态失败: {e}")
             conn.close()
             return 0
@@ -148,7 +149,7 @@ class HighlightService:
         except Exception as e:
             logger.error(f"❌ 《{movie_name}》挖掘过程中断: {e}")
             HighlightService._set_status(movie_name, 3)  # 标记为失败
-            raise e
+            raise
 
         return total_saved
 

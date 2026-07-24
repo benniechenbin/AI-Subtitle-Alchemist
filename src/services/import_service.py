@@ -3,12 +3,12 @@ import tempfile
 
 from src import db
 from src.models import UploadedFileInput
+from src.observability.logger import logger
 from src.utils import (
     calculate_file_hash,
     decode_subtitle_bytes,
     parse_subtitle_content,
 )
-from src.observability.logger import logger
 
 
 def process_uploaded_files(
@@ -72,7 +72,7 @@ def process_uploaded_files(
                         show_progress_bar=False,
                         batch_size=16,
                     )
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 logs.append(f"⚠️ 向量化失败: {e}")
                 logger.error(f"文件 {name} 向量化失败: {e}")
         clean_title = str(meta.get("识别片名", "")).replace("/", "_").replace(":", " ")
@@ -99,7 +99,7 @@ def process_uploaded_files(
                 stored_hash=f_hash,
                 save_path=save_path,
             )
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             logs.append(f"❌ 落盘失败: {name} ({exc})")
             stats["fail"] += 1
             continue

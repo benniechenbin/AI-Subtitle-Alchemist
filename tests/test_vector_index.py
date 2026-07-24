@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+
 from src import db
 from src.services import vector_index
 

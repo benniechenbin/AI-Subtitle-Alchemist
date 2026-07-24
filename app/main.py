@@ -3,13 +3,13 @@ import streamlit as st
 from app.bootstrap import init_app
 from app.sidebar import render_sidebar
 from app.tabs import (
+    render_bgm_library_tab,
     render_clean_import_tab,
     render_database_tab,
-    render_script_writer_tab,
-    render_bgm_library_tab,
-    render_harvester_discovery_tab,
     render_harvester_collection_tab,
+    render_harvester_discovery_tab,
     render_harvester_import_tab,
+    render_script_writer_tab,
 )
 
 

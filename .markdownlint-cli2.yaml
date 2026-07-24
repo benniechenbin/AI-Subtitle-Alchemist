@@ -1,0 +1,67 @@
+# .markdownlint-cli2.yaml
+
+gitignore: true
+
+config:
+  default: false
+
+  # 无序列表统一使用 -
+  MD004:
+    style: dash
+
+  # 同级列表缩进一致
+  MD005: true
+
+  # 嵌套无序列表使用两个空格
+  MD007:
+    indent: 2
+
+  # 删除所有行尾空格
+  MD009:
+    br_spaces: 0
+    strict: true
+    code_blocks: false
+
+  # Markdown 正文中不使用 Tab
+  MD010:
+    code_blocks: false
+    spaces_per_tab: 2
+
+  # 最多只保留一个连续空行
+  MD012:
+    maximum: 1
+
+  # 列表标记后统一一个空格
+  MD030:
+    ul_single: 1
+    ul_multi: 1
+    ol_single: 1
+    ol_multi: 1
+
+  # 列表前后保留空行
+  MD032: true
+
+  # 文件末尾必须有换行
+  MD047: true
+
+  # 标题风格统一
+  MD003: true
+
+  # 标题前后空行
+  MD022:
+    lines_above: 1
+    lines_below: 1
+
+  # 代码块前后空行
+  MD031: true
+
+  # 代码块强制标签格式
+  MD040: true
+
+  # 代码块风格统一
+  MD046:
+    style: fenced
+
+  # 代码围栏样式统一
+  MD048:
+    style: backtick

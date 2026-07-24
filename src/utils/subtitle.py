@@ -40,7 +40,7 @@ def decode_subtitle_bytes(file_bytes: bytes) -> tuple[str, str, bool]:
                     "\ue000" <= c <= "\uf8ff" for c in content
                 ):
                     return content, enc, False
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
 
     # 2. 依次尝试常用的 fallback 编码（严格解码模式）
@@ -62,7 +62,7 @@ def decode_subtitle_bytes(file_bytes: bytes) -> tuple[str, str, bool]:
                 "\ue000" <= c <= "\uf8ff" for c in content
             ):
                 return content, enc, False
-        except Exception:
+        except Exception:  # noqa: BLE001, S112
             continue
 
     # 3. 最后无奈之举：使用 utf-8-sig 容错解码
@@ -94,7 +94,7 @@ def parse_ass_content(content: str) -> list[dict]:
                                 "text": clean_text,
                             }
                         )
-            except Exception:
+            except Exception:  # noqa: BLE001, S112
                 continue
     return parsed_data
 

@@ -1,12 +1,11 @@
 from dataclasses import dataclass
-from typing import Optional
 
 
 @dataclass
 class MovieMeta:
     movie_name: str
-    poster_url: Optional[str] = None
-    release_year: Optional[int] = None
+    poster_url: str | None = None
+    release_year: int | None = None
     highlight_status: int = 0
     line_count: int = 0
 
@@ -16,7 +15,7 @@ class GoldenQuote:
     content: str
     timestamp: str
     reason: str
-    movie_name: Optional[str] = None
+    movie_name: str | None = None
 
 
 @dataclass
@@ -30,7 +29,7 @@ class BgmAsset:
     source: str = "llm_prior"
     confidence: float = 0.5
     user_verified: int = 0
-    updated_at: Optional[str] = None
+    updated_at: str | None = None
 
 
 @dataclass

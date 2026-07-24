@@ -149,7 +149,7 @@ def _render_llm_config() -> None:
 
     current_model_val = prefs.llm_model_name
 
-    if provider in model_presets and model_presets[provider]:
+    if model_presets.get(provider):
         options = model_presets[provider] + ["✍️ 手动输入..."]
         try:
             pre_index = options.index(current_model_val)

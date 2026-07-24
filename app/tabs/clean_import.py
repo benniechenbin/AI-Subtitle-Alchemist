@@ -1,5 +1,5 @@
-import io
 import hashlib
+import io
 import time
 import zipfile
 
@@ -8,15 +8,15 @@ import streamlit as st
 
 from app.cached import cached_embedding_model, cached_library_stats
 from src import db
+from src.config import settings
 from src.models import UploadedFileInput
+from src.observability.logger import logger
 from src.services.import_service import process_uploaded_files
 from src.services.upload_manifest_adapter import (
     prepare_upload_analysis,
     split_uploaded_files,
 )
 from src.services.vector_index import get_vector_index_service
-from src.config import settings
-from src.observability.logger import logger
 
 
 def render_clean_import_tab(ctx: dict) -> None:
@@ -178,7 +178,7 @@ def _run_batch_process(
                 st.write("🧠 正在加载/获取 AI 模型...")
                 model_instance = cached_embedding_model(embedding_model)
                 current_model_name = embedding_model
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 st.error(str(e))
                 st.stop()
         else:
@@ -304,7 +304,7 @@ def _render_import_confirmation(db_path):
                 _inserted_ids, vector_error = _commit_pending_import(
                     db_path, pending_payload
                 )
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001
                 logger.exception("Clean import transaction failed: %s", exc)
                 st.error("入库失败，本次数据已全部回滚，可安全重试。")
                 return
@@ -340,7 +340,7 @@ def _commit_pending_import(db_path, pending_payload, vector_service=None):
             inserted_ids,
             pending_payload.get("pending_vectors", []),
         )
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         logger.exception("Vector index update failed after import: %s", exc)
         return inserted_ids, exc
     return inserted_ids, None

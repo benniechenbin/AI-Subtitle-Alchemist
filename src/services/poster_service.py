@@ -1,11 +1,10 @@
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 from src import db
 from src.config.settings import settings
 from src.observability.logger import logger
 from src.services.tmdb_service import fetch_tmdb_poster
-
 
 PosterFetcher = Callable[..., str | None]
 ProgressCallback = Callable[[str], None]
@@ -61,7 +60,7 @@ def backfill_missing_posters(
             else:
                 result.not_found_count += 1
                 _emit(progress_callback, f"⚠️ 未找到海报: {movie_name}")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             result.error_count += 1
             logger.error(f"自动抓取海报失败: {movie_name}: {e}")
             _emit(progress_callback, f"❌ 海报抓取失败: {movie_name} ({e})")

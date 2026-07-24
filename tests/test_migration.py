@@ -1,6 +1,7 @@
 import os
 import sqlite3
-from src.db import init_db, get_db_connection
+
+from src.db import get_db_connection, init_db
 
 
 def test_migration_empty_db():
@@ -105,7 +106,7 @@ if __name__ == "__main__":
         test_migration_empty_db()
         test_migration_v1_upgrade()
         print("🎉 ALL MIGRATION TESTS PASSED")
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         print(f"❌ TEST FAILED: {e}")
         import traceback
 

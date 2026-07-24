@@ -1,5 +1,6 @@
 import os
 import sqlite3
+
 from src.config import settings
 from src.config.settings import DEFAULT_DB_PATH, ensure_data_dir
 

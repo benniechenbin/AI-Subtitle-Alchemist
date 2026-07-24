@@ -7,7 +7,6 @@ import guessit
 
 from src.observability.logger import logger
 
-
 MANIFEST_NAME = "harvester_import_manifest.json"
 
 
@@ -31,7 +30,7 @@ def load_harvester_manifest(input_dir: str | Path) -> dict[str, dict]:
     try:
         with manifest_path.open("r", encoding="utf-8") as f:
             manifest = json.load(f)
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         logger.warning(f"Failed to read harvester manifest {manifest_path}: {e}")
         return {}
 

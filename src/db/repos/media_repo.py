@@ -1,5 +1,6 @@
 import json
 import time
+
 from src.config.constants import TMDB_POSTER_BASE_URL
 from src.db.base import get_db_connection
 from src.observability.logger import logger
@@ -28,7 +29,7 @@ def get_library_stats(db_path=None):
             "line_count": l_count,
             "last_update": time.strftime("%Y-%m-%d %H:%M:%S"),
         }
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         logger.error(f"⚠️ 统计数据获取失败: {e}")
         return {"movie_count": 0, "line_count": 0, "last_update": "从未"}
     finally:

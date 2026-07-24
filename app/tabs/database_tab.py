@@ -1,4 +1,5 @@
 import time
+
 import pandas as pd
 import streamlit as st
 
@@ -7,15 +8,15 @@ from app.cached import cached_embedding_model, cached_library_stats
 from src import db
 from src.config import settings
 from src.models import ScanDoneResult
-from src.services.scan_service import scan_library
-from src.services.search import search_semantic
-from src.services.vector_index import get_vector_index_service
+from src.services.highlight_service import HighlightService
 from src.services.poster_service import (
     PosterBackfillResult,
     backfill_missing_posters,
 )
+from src.services.scan_service import scan_library
+from src.services.search import search_semantic
 from src.services.tmdb_service import fetch_tmdb_poster
-from src.services.highlight_service import HighlightService
+from src.services.vector_index import get_vector_index_service
 
 
 def render_database_tab(ctx: dict) -> None:
@@ -81,97 +82,91 @@ def render_database_tab(ctx: dict) -> None:
             cols = st.columns(cols_per_row)
 
             for col, movie in zip(cols, row_movies):
-                with col:
-                    with st.container(border=True):
-                        # 如果没有海报 URL，使用现代主义灰色方块占位
-                        if movie["poster_url"]:
-                            st.image(movie["poster_url"], width="stretch")
-                        else:
-                            st.markdown(
-                                """
+                with col, st.container(border=True):
+                    # 如果没有海报 URL，使用现代主义灰色方块占位
+                    if movie["poster_url"]:
+                        st.image(movie["poster_url"], width="stretch")
+                    else:
+                        st.markdown(
+                            """
                                 <div style="background-color: #262730; height: 260px; border-radius: 5px;
                                 display: flex; align-items: center; justify-content: center; color: #808495;
                                 font-size: 14px; margin-bottom: 10px; border: 1px dashed #434651;">
                                 🎬 暂无海报数据
                                 </div>
                                 """,
-                                unsafe_allow_html=True,
-                            )
+                            unsafe_allow_html=True,
+                        )
 
-                        # 电影文本元数据展示
-                        st.markdown(f"**{movie['movie_name']}**")
-                        year_str = (
-                            f" ({movie['release_year']})"
-                            if movie["release_year"]
-                            else ""
+                    # 电影文本元数据展示
+                    st.markdown(f"**{movie['movie_name']}**")
+                    year_str = (
+                        f" ({movie['release_year']})" if movie["release_year"] else ""
+                    )
+                    st.caption(
+                        f"📅 年份: {year_str} | 💬 台词: {movie['line_count']} 条"
+                    )
+                    st.divider()
+                    # 如果缺失海报，提供动态补取按钮
+                    if not movie["poster_url"] and st.button(
+                        "🖼️ 抓取海报",
+                        key=f"poster_{movie['movie_name']}",
+                        width="stretch",
+                    ):
+                        with st.spinner("逆向抓取中..."):
+                            poster_url = fetch_tmdb_poster(
+                                movie["movie_name"],
+                                release_year=movie["release_year"],
+                            )
+                            if poster_url:
+                                db.update_movie_poster(
+                                    db_path, movie["movie_name"], poster_url
+                                )
+                                st.toast("🎉 海报抓取成功！")
+                                time.sleep(1)
+                                st.rerun()
+                            else:
+                                st.error("未找到海报。")
+
+                    # 渲染金句挖掘按钮状态机
+                    status = movie.get("highlight_status", 0)
+                    if status == 0 or status == 3:
+                        btn_label = (
+                            "🪄 提炼金句" if status == 0 else "❌ 挖掘失败，点击重试"
                         )
-                        st.caption(
-                            f"📅 年份: {year_str} | 💬 台词: {movie['line_count']} 条"
-                        )
-                        st.divider()
-                        # 如果缺失海报，提供动态补取按钮
-                        if not movie["poster_url"]:
-                            if st.button(
-                                "🖼️ 抓取海报",
-                                key=f"poster_{movie['movie_name']}",
-                                width="stretch",
+                        if st.button(
+                            btn_label,
+                            key=f"hl_{movie['movie_name']}",
+                            width="stretch",
+                        ):
+                            with st.spinner(
+                                "AI 正在逐帧通读全片台词，可能需要 1-3 分钟，请稍候..."
                             ):
-                                with st.spinner("逆向抓取中..."):
-                                    poster_url = fetch_tmdb_poster(
+                                try:
+                                    HighlightService.extract_movie_highlights(
                                         movie["movie_name"],
-                                        release_year=movie["release_year"],
+                                        api_key=get_effective_api_key(),
                                     )
-                                    if poster_url:
-                                        db.update_movie_poster(
-                                            db_path, movie["movie_name"], poster_url
-                                        )
-                                        st.toast("🎉 海报抓取成功！")
-                                        time.sleep(1)
-                                        st.rerun()
-                                    else:
-                                        st.error("未找到海报。")
-
-                        # 渲染金句挖掘按钮状态机
-                        status = movie.get("highlight_status", 0)
-                        if status == 0 or status == 3:
-                            btn_label = (
-                                "🪄 提炼金句"
-                                if status == 0
-                                else "❌ 挖掘失败，点击重试"
-                            )
-                            if st.button(
-                                btn_label,
-                                key=f"hl_{movie['movie_name']}",
-                                width="stretch",
-                            ):
-                                with st.spinner(
-                                    "AI 正在逐帧通读全片台词，可能需要 1-3 分钟，请稍候..."
-                                ):
-                                    try:
-                                        HighlightService.extract_movie_highlights(
-                                            movie["movie_name"],
-                                            api_key=get_effective_api_key(),
-                                        )
-                                        st.toast("🎉 金句提炼完成！")
-                                        time.sleep(1)
-                                        st.rerun()
-                                    except Exception as e:
-                                        st.error(f"挖掘失败: {e}")
-                        elif status == 1:
-                            st.button(
-                                "⏳ 疯狂挖掘中...",
-                                key=f"hl_ing_{movie['movie_name']}",
-                                disabled=True,
-                                width="stretch",
-                            )
-                        elif status == 2:
-                            if st.button(
-                                "✨ 查看金句",
-                                key=f"hl_done_{movie['movie_name']}",
-                                width="stretch",
-                                type="primary",
-                            ):
-                                _show_quotes_dialog(movie["movie_name"], db_path)
+                                    st.toast("🎉 金句提炼完成！")
+                                    time.sleep(1)
+                                    st.rerun()
+                                except Exception as e:  # noqa: BLE001
+                                    st.error(f"挖掘失败: {e}")
+                    elif status == 1:
+                        st.button(
+                            "⏳ 疯狂挖掘中...",
+                            key=f"hl_ing_{movie['movie_name']}",
+                            disabled=True,
+                            width="stretch",
+                        )
+                    elif status == 2:
+                        if st.button(
+                            "✨ 查看金句",
+                            key=f"hl_done_{movie['movie_name']}",
+                            width="stretch",
+                            type="primary",
+                        ):
+                            _show_quotes_dialog(movie["movie_name"], db_path)
 
         st.divider()
 
@@ -324,9 +319,9 @@ def _run_rebuild_index(library_path: str, embedding_model: str, db_path: str) ->
             cached_library_stats.clear()
             time.sleep(1)
             st.rerun()
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             status.update(label="❌ 发生错误", state="error")
-            st.error(f"扫描中断: {str(e)}")
+            st.error(f"扫描中断: {e!s}")
 
 
 def _render_poster_backfill_summary(result: PosterBackfillResult) -> None:

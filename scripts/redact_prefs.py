@@ -16,7 +16,7 @@ def redact_preferences(file_path):
 
         redacted_count = 0
         for key in sensitive_keys:
-            if key in data and data[key]:
+            if data.get(key):
                 data[key] = "***REDACTED***"
                 redacted_count += 1
 
@@ -27,7 +27,7 @@ def redact_preferences(file_path):
         else:
             print("No sensitive fields found or already redacted.")
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         print(f"Error: {e}")
 
 

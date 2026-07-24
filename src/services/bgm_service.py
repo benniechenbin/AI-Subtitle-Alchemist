@@ -1,5 +1,6 @@
 import json
 import re
+
 from src.config.settings import settings
 from src.observability.logger import logger
 from src.services.llm import call_llm_api
@@ -68,6 +69,6 @@ class BgmService:
         except json.JSONDecodeError:
             logger.error(f"❌ 大模型返回的不是合法 JSON: {llm_response}")
             return None
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.error(f"❌ BGM 分析过程发生未知错误: {e}")
             return None

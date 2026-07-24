@@ -9,7 +9,7 @@ from src.utils import calculate_file_hash
 
 
 def _srt(text="Hello") -> bytes:
-    return f"1\n00:00:01,000 --> 00:00:02,000\n{text}\n\n".encode("utf-8")
+    return f"1\n00:00:01,000 --> 00:00:02,000\n{text}\n\n".encode()
 
 
 def _metadata(title="规范片名", year=2025):

@@ -9,7 +9,6 @@ from src.services.harvester_manifest import MANIFEST_NAME, normalize_manifest_pa
 from src.services.tmdb_service import search_tmdb_metadata
 from src.utils import analyze_filenames
 
-
 VALID_SUBTITLE_EXTS = {".srt", ".ass", ".ssa", ".vtt", ".txt"}
 
 
@@ -119,7 +118,7 @@ def _search_tmdb_queries(
             key = futures[future]
             try:
                 results[key] = future.result()
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001
                 results[key] = None
                 warnings.append(
                     f"TMDB 匹配失败，已保留文件名识别结果: {key[0]} ({exc})"
@@ -161,7 +160,7 @@ def _load_first_manifest_items(
             manifest = json.loads(payload)
             items = _extract_manifest_items(manifest)
             return items, warnings
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             warnings.append(
                 f"Harvester manifest 读取失败，已回退到文件名识别: "
                 f"{getattr(manifest_file, 'name', MANIFEST_NAME)} ({e})"
@@ -229,13 +228,13 @@ def _read_uploaded_bytes(uploaded_file: Any) -> bytes:
     if hasattr(uploaded_file, "tell"):
         try:
             current_pos = uploaded_file.tell()
-        except Exception:
+        except Exception:  # noqa: BLE001
             current_pos = None
 
     if hasattr(uploaded_file, "seek"):
         try:
             uploaded_file.seek(0)
-        except Exception:
+        except Exception:  # noqa: BLE001, S110
             pass
 
     raw = uploaded_file.read()
@@ -243,7 +242,7 @@ def _read_uploaded_bytes(uploaded_file: Any) -> bytes:
     if current_pos is not None and hasattr(uploaded_file, "seek"):
         try:
             uploaded_file.seek(current_pos)
-        except Exception:
+        except Exception:  # noqa: BLE001, S110
             pass
 
     return raw
