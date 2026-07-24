@@ -22,7 +22,7 @@ dependencies = [
     "torch; sys_platform != 'darwin' or platform_machine != 'x86_64'",
     "torch<=2.2.2; sys_platform == 'darwin' and platform_machine == 'x86_64'",
     "sqlite-vec>=0.1.6,<0.2",
-    "streamlit>=1.30.0",
+    "streamlit>=1.60.0",
     "torchvision>=0.27.1; sys_platform != 'darwin' or platform_machine != 'x86_64'",
     "torchvision>=0.17.2; sys_platform == 'darwin' and platform_machine == 'x86_64'",
     "mypy>=2.3.0",
