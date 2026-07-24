@@ -46,7 +46,7 @@ jobs:
         run: uv run python scripts/generate_env_example.py --check
 
       - name: Run pre-commit checks
-        run: uv run pre-commit run --all-files
+        run: uv run pre-commit run --all-files --show-diff-on-failure
 
       - name: Run Pytest
         run: uv run pytest
