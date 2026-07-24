@@ -9,7 +9,7 @@ dependencies = [
     "guessit>=3.8.0",
     "loguru>=0.7.3",
     "numpy>=2.4.6; sys_platform != 'darwin' or platform_machine != 'x86_64'",
-    "numpy<2.0.0; sys_platform == 'darwin' and platform_machine == 'x86_64'",
+    "numpy<3.0.0; sys_platform == 'darwin' and platform_machine == 'x86_64'",
     "openai>=2.43.0",
     "pandas>=3.0.3",
     "pydantic-settings>=2.14.2",
