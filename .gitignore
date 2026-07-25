@@ -9,7 +9,7 @@ secrets.toml
 __pycache__/
 *.pyc
 .env
-.venv
+.venv/
 env/
 venv/
 logs/
@@ -19,3 +19,8 @@ logs/
 *.srt
 *.zip
 processed_files/
+.agents/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
