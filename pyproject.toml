@@ -32,6 +32,8 @@ dependencies = [
 extraPaths = ["."]
 
 [tool.mypy]
+python_version = "3.11"
+files = ["app", "src", "scripts", "tests", "main.py", "webui.py"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

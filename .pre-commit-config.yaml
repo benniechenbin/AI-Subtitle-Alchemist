@@ -1,56 +1,80 @@
 repos:
-  - repo: local
+  # -------------------------------------------------------------
+  # Stage 1：极速阻断 (Fast-Fail 拦截: 冲突, 大文件, 语法, 调试代码与密钥)
+  # -------------------------------------------------------------
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
     hooks:
-      - id: generate-env-example
-        name: Generate .env.example files
-        entry: uv run python scripts/generate_env_example.py
-        language: system
-        always_run: true
-        pass_filenames: false
+      - id: check-merge-conflict  # 1.1 先查 Git 冲突
+        args: [--assume-in-merge]
+      - id: check-added-large-files # 1.2 阻断超大文件入库
+      - id: check-yaml
+      - id: check-json
+      - id: check-toml
+      - id: check-ast             # 1.3 确保 Python 代码语法正确
+      - id: debug-statements      # 1.4 检查 breakpoint() / pdb 等调试语句
+      - id: detect-private-key
 
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.30.0
     hooks:
       - id: gitleaks
 
+  # -------------------------------------------------------------
+  # Stage 2：生成派生文件 (依赖 Python 语法正确，在项目 uv 环境运行)
+  # -------------------------------------------------------------
+  - repo: local
+    hooks:
+      - id: generate-env-example  # 2.1 根据 Settings 自动生成/更新 .env.example
+        name: Check .env.example against Settings
+        entry: uv run python scripts/generate_env_example.py
+        language: system
+        always_run: true
+        pass_filenames: false
+
+  # -------------------------------------------------------------
+  # Stage 3：语言/文档专用自动修复 (Ruff + Markdownlint)
+  # -------------------------------------------------------------
+  - repo: local
+    hooks:
+      - id: ruff-check            # 3.1 Ruff 自动修复 Lint 问题（如 import 排序等）
+        name: ruff check
+        entry: uv run ruff check --fix
+        language: system
+        types_or: [python, pyi]
+
+      - id: ruff-format           # 3.2 Ruff 格式化 Python/Jupyter 代码
+        name: ruff format
+        entry: uv run ruff format
+        language: system
+        types_or: [python, pyi, jupyter]
+
   - repo: https://github.com/DavidAnson/markdownlint-cli2
     rev: v0.23.2
     hooks:
-      - id: markdownlint-cli2
-        args:
-          - --fix
+      - id: markdownlint-cli2     # 3.3 Markdown 专门修复
+        args: [--fix]
 
+  # -------------------------------------------------------------
+  # Stage 4：通用文本最终收尾 (确保 formatter 修改后依然满足 LF, 无尾随空格, EOF 换行)
+  # -------------------------------------------------------------
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
-      - id: trailing-whitespace
-        args: [--markdown-linebreak-ext=md]
-      - id: end-of-file-fixer
-      - id: check-toml
-      - id: check-yaml
-      - id: check-json
-      - id: debug-statements
-      - id: check-ast
-      - id: check-added-large-files
-      - id: detect-private-key
-      - id: check-merge-conflict
-        args: [--assume-in-merge]
-      - id: mixed-line-ending
+      - id: mixed-line-ending     # 4.1 统一换行符为 LF
         args: [--fix=lf]
+      - id: trailing-whitespace   # 4.2 消除尾随空格
+        args: [--markdown-linebreak-ext=md]
+      - id: end-of-file-fixer     # 4.3 确保文件末尾单换行
 
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.1
-    hooks:
-      - id: ruff-check
-        args: [--fix]
-      - id: ruff-format
-        types_or: [python, pyi, jupyter, markdown]
-
+  # -------------------------------------------------------------
+  # Stage 5：昂贵的语义检查 (全套修剪完成后仅对相关文件变更触发 Mypy)
+  # -------------------------------------------------------------
   - repo: local
     hooks:
-      - id: mypy
+      - id: mypy                  # 5.1 完整项目 Mypy 类型检查 (参数已统一收聚至 pyproject.toml)
         name: mypy
-        entry: uv run mypy app src scripts tests main.py webui.py
+        entry: uv run mypy
         language: system
         pass_filenames: false
-        always_run: true
+        files: '^(pyproject\.toml|\.pyi?)$'
