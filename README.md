@@ -2,7 +2,7 @@
 
 # 🎬 AI Subtitle Alchemist
 
-### AI 字幕炼金术师
+## AI 字幕炼金术师
 
 <p align="center">
   <a href="./README.md">English</a> •
