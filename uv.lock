@@ -28,7 +28,8 @@ dependencies = [
     { name = "requests" },
     { name = "ruff" },
     { name = "scikit-learn" },
-    { name = "sentence-transformers" },
+    { name = "sentence-transformers", version = "3.4.1", source = { registry = "https://pypi.org/simple" }, marker = "platform_machine == 'x86_64' and sys_platform == 'darwin'" },
+    { name = "sentence-transformers", version = "5.6.0", source = { registry = "https://pypi.org/simple" }, marker = "platform_machine != 'x86_64' or sys_platform != 'darwin'" },
     { name = "sqlite-vec" },
     { name = "streamlit" },
     { name = "torch", version = "2.2.2", source = { registry = "https://pypi.org/simple" }, marker = "platform_machine == 'x86_64' and sys_platform == 'darwin'" },
@@ -59,13 +60,13 @@ requires-dist = [
     { name = "ruff", specifier = ">=0.16.0" },
     { name = "scikit-learn", specifier = ">=1.9.0" },
     { name = "sentence-transformers", marker = "platform_machine != 'x86_64' or sys_platform != 'darwin'", specifier = ">=5.6.0" },
-    { name = "sentence-transformers", marker = "platform_machine == 'x86_64' and sys_platform == 'darwin'", specifier = ">=3.0.0" },
+    { name = "sentence-transformers", marker = "platform_machine == 'x86_64' and sys_platform == 'darwin'", specifier = ">=3.0.0,<4.0.0" },
     { name = "sqlite-vec", specifier = ">=0.1.6,<0.2" },
     { name = "streamlit", specifier = ">=1.60.0" },
     { name = "torch", marker = "platform_machine != 'x86_64' or sys_platform != 'darwin'" },
     { name = "torch", marker = "platform_machine == 'x86_64' and sys_platform == 'darwin'", specifier = "<=2.2.2" },
     { name = "torchvision", marker = "platform_machine != 'x86_64' or sys_platform != 'darwin'", specifier = ">=0.27.1" },
-    { name = "torchvision", marker = "platform_machine == 'x86_64' and sys_platform == 'darwin'", specifier = ">=0.17.2" },
+    { name = "torchvision", marker = "platform_machine == 'x86_64' and sys_platform == 'darwin'", specifier = "<=0.17.2" },
     { name = "transformers", marker = "platform_machine != 'x86_64' or sys_platform != 'darwin'" },
     { name = "transformers", marker = "platform_machine == 'x86_64' and sys_platform == 'darwin'", specifier = "<4.42.0" },
 ]
@@ -1628,15 +1629,44 @@ wheels = [
 
 [[package]]
 name = "sentence-transformers"
+version = "3.4.1"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version >= '3.12' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version < '3.12' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
+]
+dependencies = [
+    { name = "huggingface-hub" },
+    { name = "pillow" },
+    { name = "scikit-learn" },
+    { name = "scipy" },
+    { name = "torch", version = "2.2.2", source = { registry = "https://pypi.org/simple" } },
+    { name = "tqdm" },
+    { name = "transformers" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/16/74/aca6f8a2b8d62b4daf8c9a0c49d2aa573381caf47dc35cbb343389229376/sentence_transformers-3.4.1.tar.gz", hash = "sha256:68daa57504ff548340e54ff117bd86c1d2f784b21e0fb2689cf3272b8937b24b", size = 223898, upload-time = "2025-01-29T14:25:55.982Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/05/89/7eb147a37b7f31d3c815543df539d8b8d0425e93296c875cc87719d65232/sentence_transformers-3.4.1-py3-none-any.whl", hash = "sha256:e026dc6d56801fd83f74ad29a30263f401b4b522165c19386d8bc10dcca805da", size = 275896, upload-time = "2025-01-29T14:25:53.614Z" },
+]
+
+[[package]]
+name = "sentence-transformers"
 version = "5.6.0"
 source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version >= '3.12' and sys_platform == 'win32'",
+    "python_full_version >= '3.12' and sys_platform == 'emscripten'",
+    "(python_full_version >= '3.12' and platform_machine != 'x86_64' and sys_platform == 'darwin') or (python_full_version >= '3.12' and sys_platform != 'darwin' and sys_platform != 'emscripten' and sys_platform != 'win32')",
+    "python_full_version < '3.12' and sys_platform == 'win32'",
+    "python_full_version < '3.12' and sys_platform == 'emscripten'",
+    "(python_full_version < '3.12' and platform_machine != 'x86_64' and sys_platform == 'darwin') or (python_full_version < '3.12' and sys_platform != 'darwin' and sys_platform != 'emscripten' and sys_platform != 'win32')",
+]
 dependencies = [
     { name = "huggingface-hub" },
     { name = "numpy" },
     { name = "scikit-learn" },
     { name = "scipy" },
-    { name = "torch", version = "2.2.2", source = { registry = "https://pypi.org/simple" }, marker = "platform_machine == 'x86_64' and sys_platform == 'darwin'" },
-    { name = "torch", version = "2.12.1", source = { registry = "https://pypi.org/simple" }, marker = "platform_machine != 'x86_64' or sys_platform != 'darwin'" },
+    { name = "torch", version = "2.12.1", source = { registry = "https://pypi.org/simple" } },
     { name = "tqdm" },
     { name = "transformers" },
     { name = "typing-extensions" },

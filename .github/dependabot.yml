@@ -18,6 +18,11 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "torch"
+      - dependency-name: "torchvision"
+      - dependency-name: "transformers"
+      - dependency-name: "sentence-transformers"
 
     groups:
       python-dev-tools:
