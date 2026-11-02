@@ -27,7 +27,7 @@ repos:
     hooks:
       - id: generate-env-example  # 2.1 根据 Settings 自动生成/更新 .env.example
         name: Check .env.example against Settings
-        entry: uv run python scripts/generate_env_example.py
+        entry: uv run --no-sync python scripts/generate_env_example.py
         language: system
         always_run: true
         pass_filenames: false
@@ -39,20 +39,20 @@ repos:
     hooks:
       - id: ruff-check            # 3.1 Ruff 自动修复 Lint 问题（如 import 排序等）
         name: ruff check
-        entry: uv run ruff check --fix
+        entry: uv run --no-sync ruff check --fix
         language: system
         types_or: [python, pyi]
 
       - id: ruff-format           # 3.2 Ruff 格式化 Python/Jupyter 代码
         name: ruff format
-        entry: uv run ruff format
+        entry: uv run --no-sync ruff format
         language: system
         types_or: [python, pyi, jupyter]
 
   - repo: https://github.com/DavidAnson/markdownlint-cli2
     rev: v0.24.0
     hooks:
-      - id: markdownlint-cli2     # 3.3 Markdown 专门修复
+      - id: markdownlint-cli2     # 3.3 Markdown 格式修复
         args: [--fix]
 
   # -------------------------------------------------------------
@@ -74,7 +74,7 @@ repos:
     hooks:
       - id: mypy                  # 5.1 完整项目 Mypy 类型检查 (参数已统一收聚至 pyproject.toml)
         name: mypy
-        entry: uv run mypy
+        entry: uv run --no-sync mypy
         language: system
         pass_filenames: false
         files: '^(pyproject\.toml|\.pyi?)$'
