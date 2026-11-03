@@ -40,6 +40,9 @@ ignore_missing_imports = true
 pythonpath = ["."]
 markers = ["manual: manual tests requiring API keys or network"]
 
+[tool.codespell]
+skip = ".git,.venv,venv,env,logs,data,processed_files,*.lock,*.srt,*.ass,*.vtt"
+
 
 [dependency-groups]
 dev = [

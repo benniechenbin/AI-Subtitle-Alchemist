@@ -40,7 +40,7 @@ jobs:
           enable-cache: true
 
       - name: Install Python dependencies
-        run: uv sync
+        run: uv sync --frozen
 
       - name: Check .env.example sync
         run: uv run python scripts/generate_env_example.py --check
