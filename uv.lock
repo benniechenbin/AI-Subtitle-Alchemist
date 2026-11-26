@@ -414,16 +414,16 @@ wheels = [
 
 [[package]]
 name = "guessit"
-version = "4.5.1"
+version = "4.5.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "babelfish" },
     { name = "python-dateutil" },
     { name = "rebulk" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/67/22/4a0e35d27d9537e7f03753e0814f4525200e866e43b1c6bd29d901fbac03/guessit-4.5.1.tar.gz", hash = "sha256:df09f2bd6f4ab24eb7960422292cc2332be7bd7d338ff14511b9d1174a78e383", size = 490111, upload-time = "2026-11-10T23:16:20.943Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ae/50/f230a6a6f7e384bbfcff4223f3104f8a1ff2eeba7b3b467f1576709800d0/guessit-4.5.5.tar.gz", hash = "sha256:fe1d6a3881d1b5f4bc3b451257fcc7b405fa5af94785f7696b544e360c79368b", size = 494900, upload-time = "2026-11-22T21:00:09.552Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ca/bd/5b69c256eb546c1cb11df3c7733352c22d5b5984ba662bba1d27cc9076b3/guessit-4.5.1-py3-none-any.whl", hash = "sha256:3943faf9136a1277b730a08f1212bc17acc5566b94fd689ec561c53260508f00", size = 342797, upload-time = "2026-11-10T23:16:19.469Z" },
+    { url = "https://files.pythonhosted.org/packages/c9/da/fb9182b39c97f1b189a948db5b5f4ca42a41b75703fe5195e5a15821eaf6/guessit-4.5.5-py3-none-any.whl", hash = "sha256:1c80601032ff471bc1b57ae17a8a8de03e1deff5f7e7d8de41fc8f45a5e93cd3", size = 346410, upload-time = "2026-11-22T21:00:07.853Z" },
 ]
 
 [[package]]
@@ -1363,11 +1363,11 @@ wheels = [
 
 [[package]]
 name = "rebulk"
-version = "6.0.2"
+version = "6.0.3"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/95/7e/284e071fbf6dbd3c760c898b2c19cd9e6cb78452cd83ae6bf6363d8ea908/rebulk-6.0.2.tar.gz", hash = "sha256:91d792483690aeb249bb56b3357598dd658f0f533066680db8c3e1b6f7dc8929", size = 59886, upload-time = "2026-11-10T15:48:11.86Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a3/d0/c001bf43b776fdeeb076c6feccb3b484aa837df6e7abb578ed5b85e6db11/rebulk-6.0.3.tar.gz", hash = "sha256:279ee02bb83d6b9c2bd1a54805ef0db30e0721d0c7653fe59c4565b47e2a0800", size = 60567, upload-time = "2026-11-22T07:26:34.526Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a0/a0/aa43baac1cb0dfafce8f9cfdc23f72e188babb16e64df5169618aa132206/rebulk-6.0.2-py3-none-any.whl", hash = "sha256:3d9b1968f66adb93241d4379e0bc648e3eb965761502938cb44c247aeb358802", size = 72840, upload-time = "2026-11-10T15:48:10.849Z" },
+    { url = "https://files.pythonhosted.org/packages/c3/33/f7d6335e260b936f90b72b87b6d2d653540695e7e8c9863f9f5a963ad33f/rebulk-6.0.3-py3-none-any.whl", hash = "sha256:72f777209e9a3bba473cc77eed516a960f4416c137def89e1937f2bc9e4d2849", size = 73536, upload-time = "2026-11-22T07:26:33.548Z" },
 ]
 
 [[package]]
